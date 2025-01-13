@@ -1,0 +1,10 @@
+#!/usr/bin/env python3
+
+from setuptools import setup
+
+setup(name='cellFlow',
+      version='0.0.1',
+      description='Forward and inverse problems for fluid dynamics during cell division',
+      author='Yunyi Shen',
+      packages=[],
+     )
