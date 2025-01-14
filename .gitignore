@@ -1,3 +1,4 @@
 package/cellFlow.egg-info/*
 *.png
 package/cellFlow/*/__pycache__/*
+*.mp4
