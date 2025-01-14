@@ -1,5 +1,5 @@
 import numpy as np
-from .pressure_poisson import build_up_b, pressure_poisson, build_up_b_with_hydrostatic_tress
+from .pressure_poisson import build_up_b, pressure_poisson, build_up_b_with_hydrostatic_tress, build_up_b_convection_only
 from tqdm import tqdm
 
 
@@ -203,21 +203,22 @@ def chorin_projection_with_extra_hydrostatic(nt, u, v,
     for n in tqdm(range(nt)):
 
         t = (n) * dt
-        
         un = u.copy()
         vn = v.copy()
         stress_inner = hydro_stress(X, Y, t)
         if upwind:
-            ustar = velocity_u_upwind_update(u, dx, dy, dt, rho, nu, -stress_inner, un, vn)
-            vstar = velocity_v_upwind_update(v, dx, dy, dt, rho, nu, -stress_inner, un, vn)
+            u = velocity_u_upwind_update(u, dx, dy, dt, rho, nu, -stress_inner, un, vn)
+            v = velocity_v_upwind_update(v, dx, dy, dt, rho, nu, -stress_inner, un, vn)
         else:
-            ustar = velocity_u_update(u, dx, dy, dt, rho, nu, -stress_inner, un, vn)
-            vstar = velocity_v_update(v, dx, dy, dt, rho, nu, -stress_inner, un, vn)
-        b = build_up_b(b, rho, dt, ustar, vstar, dx, dy)
-        p = pressure_poisson(p , dx, dy, b, mask, **kwargs)
+            u = velocity_u_update(u, dx, dy, dt, rho, nu, -stress_inner, un, vn)
+            v = velocity_v_update(v, dx, dy, dt, rho, nu, -stress_inner, un, vn)
+        u = u * mask
+        v = v * mask
+        b = build_up_b_convection_only(rho, dt, u, v, dx, dy)
+        p = pressure_poisson(p, dx, dy, b, mask, **kwargs)
         # set BC
-        u = ustar - dt / (2 * dx) * (p[1:-1, 2:] - p[1:-1, 0:-2]) # projection, central difference in space
-        v = vstar - dt / (2 * dy) * (p[2:, 1:-1] - p[0:-2, 1:-1])
+        u[1:-1,1:-1] -= dt / (2 * dx * rho) * (p[1:-1, 2:] - p[1:-1, 0:-2]) # projection, central difference in space
+        v[1:-1,1:-1] -= dt / (2 * dy * rho) * (p[2:, 1:-1] - p[0:-2, 1:-1])
         u = u * mask
         v = v * mask
         if n % save_every == 0 and n > save_from:

@@ -1,0 +1,3 @@
+package/cellFlow.egg-info/*
+*.png
+package/cellFlow/*/__pycache__/*
