@@ -1,4 +1,5 @@
-package/cellFlow.egg-info/*
+package/cytoFD.egg-info/*
 *.png
-package/cellFlow/*/__pycache__/*
+package/cytoFD/*/__pycache__/*
 *.mp4
+newdata/*

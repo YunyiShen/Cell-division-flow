@@ -1,7 +1,7 @@
 import numpy as np 
-from cellFlow.forward.solver import naivesolver_with_extra_hydrostatic, chorin_projection_with_extra_hydrostatic
+from cytoFD.forward.solver import naivesolver_with_extra_hydrostatic, chorin_projection_with_extra_hydrostatic
 import matplotlib.pyplot as plt
-from cellFlow.forward.plot_utils import velocity_animation
+from cytoFD.forward.plot_utils import velocity_animation
 import scipy.io
 
 

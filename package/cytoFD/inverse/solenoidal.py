@@ -3,6 +3,8 @@ import torch
 from linear_operator.operators import KroneckerProductLinearOperator
 from gpytorch.means.mean import Mean
 import gpytorch
+from gpytorch.kernels import ScaleKernel, InducingPointKernel
+from inducing_points import InducingPointKernel2
 
 from curlFree import ConstantMeanGradonly, RBFKernelGradonly
 
@@ -175,3 +177,31 @@ class Solenoidal2DVelocityGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)[..., pi1, :][..., :, pi1]
         
         return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+    
+
+class spSolenoidal2DGPModel(gpytorch.models.ExactGP):
+    def __init__(self, train_x, train_y, likelihood, out_dims=[1, 2], n_inducing = 1000):
+        '''
+        Idea is to have a vector field that is [df/dy, -df/dx] for a scalar field f
+        '''
+        assert len(out_dims) == 2, 'out_dims must be a list of length 2 for two dimensional locations'
+        assert n_inducing <= train_x.shape[0], 'n_inducing must be less than the number of training points'
+        super(spSolenoidal2DGPModel, self).__init__(train_x, train_y, likelihood)
+        self.mean_module = ConstantMeanGradonly()
+        self.covar_module_base = ScaleKernel(RBFKernelsolspatialGradonly(spatial_dim=out_dims))
+        self.covar_module = InducingPointKernel2(self.covar_module_base, inducing_points=train_x[:n_inducing, :].clone(), likelihood=likelihood, out_dims=out_dims)
+        self.out_dims = out_dims
+        self.inverted_dims = [out_dims[1], out_dims[0]]
+
+    def forward(self, x):
+
+        mean_x = self.mean_module(x)[...,self.inverted_dims]
+        mean_x[..., -1] *= -1
+        mean_x += self.curlfree_mean_module(x)[..., self.out_dims]
+        #breakpoint()
+        gpytorch.settings.debug._set_state(False) # this is terrible but works, since we only take part of the covariance matrix, some dimension check cannot pass
+        covar_x = self.covar_module(x)[:,:]
+        gpytorch.settings.debug._set_state(True)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+    
+
