@@ -20,7 +20,7 @@ class velocityGPModel(gpytorch.models.ExactGP):
 
 
 class spvelocityGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, n_inducing=1000):
+    def __init__(self, train_x, train_y, likelihood, n_inducing=1000, out_dims = None):
         super(spvelocityGPModel, self).__init__(train_x, train_y, likelihood)
         self.mean_module = gpytorch.means.MultitaskMean(
             gpytorch.means.ConstantMean(), num_tasks=2

@@ -1,7 +1,7 @@
 import gpytorch
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-from .datautil import PTVData, form_mesh
+from .datautil import cellPTVdata, form_mesh
 from .helmholtz import spHelm2DGPModel
 from tqdm import tqdm
 from .naivevel import velocityGPModel
@@ -12,7 +12,7 @@ def denoisingGP(ptvdata, subsampling_rate = 0.5,
               kernel = spHelm2DGPModel, 
               likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2), 
               n_inducing = 1000, optimizer = torch.optim.Adam,
-              lr = 0.1, iter = 1000, grid_size_pred = None, predict = False):
+              lr = 0.1, iter = 300, grid_size_pred = None, predict = False):
     '''
     Denoising function for PTV data using Gaussian Process regression.
     
@@ -30,7 +30,7 @@ def denoisingGP(ptvdata, subsampling_rate = 0.5,
     Returns:
         gp_model: The trained GP model.
     '''
-    assert isinstance(ptvdata, PTVData), 'ptvdata must be an instance of PTVData'
+    assert isinstance(ptvdata, cellPTVdata), 'ptvdata must be an instance of PTVData'
     assert subsampling_rate > 0 and subsampling_rate < 1, 'subsampling_rate must be between 0 and 1'
 
     if grid_size_pred is None:
@@ -60,7 +60,7 @@ def denoisingGP(ptvdata, subsampling_rate = 0.5,
     model.eval()
     likelihood.eval()
     if not predict:
-        return model, likelihood, None
+        return model, likelihood
 
     t_grid = torch.linspace(ptvdata.t_range[0], ptvdata.t_range[1], grid_size_pred[0]).to(device)
     grid_size_pred[0] = 1
@@ -76,4 +76,4 @@ def denoisingGP(ptvdata, subsampling_rate = 0.5,
             mean = pred.mean.cpu().numpy()
             res.append(mean)
     res = np.array(res)
-    return model, likelihood, res
+    return model, likelihood, res, X_mesh[:, 1:].cpu().numpy(), t_grid.cpu().numpy()
