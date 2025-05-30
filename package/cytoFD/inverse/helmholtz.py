@@ -1,10 +1,10 @@
 
 import torch
 import gpytorch
-from curlFree import ConstantMeanGradonly, RBFKernelGradonly
-from solenoidal import RBFKernelsolspatialGradonly
+from .curlFree import ConstantMeanGradonly, RBFKernelGradonly
+from .solenoidal import RBFKernelsolspatialGradonly
 from gpytorch.kernels import ScaleKernel, InducingPointKernel
-from inducing_points import InducingPointKernel2
+from .inducing_points import InducingPointKernel2
 
 
 class Helm2DGPModel(gpytorch.models.ExactGP):
@@ -67,5 +67,3 @@ class spHelm2DGPModel(gpytorch.models.ExactGP):
         covar_x = self.covar_module(x)[:,:]
         gpytorch.settings.debug._set_state(True)
         return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
-    
-

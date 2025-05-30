@@ -79,6 +79,7 @@ class InducingPointKernel2(Kernel):
         nx2 = x2.shape[-2]
         pi1 = (torch.arange(nx1).unsqueeze(1)*(self.d) + (torch.tensor(self.out_dims).unsqueeze(0) )).reshape(len(self.out_dims)*nx1) 
         pi2 = (torch.arange(nx2).unsqueeze(1)*(self.d) + (torch.tensor(self.out_dims).unsqueeze(0) )).reshape(len(self.out_dims)*nx2)
+        #breakpoint()
         k_ux1 = to_dense(self.base_kernel(x1, self.inducing_points)[..., pi1, :][..., :, self.output_idxs])
         if torch.equal(x1, x2):
             covar = LowRankRootLinearOperator(k_ux1.matmul(self._inducing_inv_root))
@@ -92,7 +93,7 @@ class InducingPointKernel2(Kernel):
             covar = MatmulLinearOperator(
                 k_ux1.matmul(self._inducing_inv_root), k_ux2.matmul(self._inducing_inv_root).transpose(-1, -2)
             )
-
+        breakpoint()
         return covar
 
     def _covar_diag(self, inputs):

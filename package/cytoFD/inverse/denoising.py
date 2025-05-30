@@ -54,7 +54,7 @@ def denoisingGP(ptvdata, subsampling_rate = 0.5,
         loss = -mll(output, Y_train)
         loss.backward()
         optimizer.step()
-        if i % 100 == 0:
+        if i % 20 == 0:
             print(f'Iter {i + 1}/{iter} - Loss: {loss.item():.3f}')
     
     model.eval()

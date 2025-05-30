@@ -4,9 +4,9 @@ from linear_operator.operators import KroneckerProductLinearOperator
 from gpytorch.means.mean import Mean
 import gpytorch
 from gpytorch.kernels import ScaleKernel, InducingPointKernel
-from inducing_points import InducingPointKernel2
+from .inducing_points import InducingPointKernel2
 
-from curlFree import ConstantMeanGradonly, RBFKernelGradonly
+from .curlFree import ConstantMeanGradonly, RBFKernelGradonly
 
 
 
@@ -129,7 +129,7 @@ class RBFKernelsolspatialGradonly(RBFKernel):
             pi2 = torch.arange(n2 * (d)).view(d, n2).t().reshape((n2 * (d)))
             #breakpoint()
             K = K[..., pi1, :][..., :, pi2]
-
+            #breakpoint()
             return K
 
         else:
@@ -154,7 +154,7 @@ class RBFKernelsolspatialGradonly(RBFKernel):
 
 
 class Solenoidal2DVelocityGPModel(gpytorch.models.ExactGP):
-    def __init__(self, train_x, train_y, likelihood, out_dims=[1, 2]):
+    def __init__(self, train_x, train_y, likelihood, out_dims=[1, 2], n_inducing = 1000):
         '''
         Idea is to have a vector field that is [df/dy, -df/dx] for a scalar field f
         '''
@@ -175,7 +175,7 @@ class Solenoidal2DVelocityGPModel(gpytorch.models.ExactGP):
         mean_x = self.mean_module(x)[...,self.inverted_dims]
         mean_x[..., -1] *= -1
         covar_x = self.covar_module(x)[..., pi1, :][..., :, pi1]
-        
+        #breakpoint()
         return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
     
 
@@ -197,11 +197,17 @@ class spSolenoidal2DGPModel(gpytorch.models.ExactGP):
 
         mean_x = self.mean_module(x)[...,self.inverted_dims]
         mean_x[..., -1] *= -1
-        mean_x += self.curlfree_mean_module(x)[..., self.out_dims]
+        mean_x += self.mean_module(x)[..., self.out_dims]
         #breakpoint()
+        n1= x.shape[-2]
+        #breakpoint()
+        # take out the right part of cov
+        dimm = x.shape[-1]
+        #breakpoint()
+        pi1 = (torch.arange(n1).unsqueeze(1)*(dimm) + (torch.tensor(self.out_dims).unsqueeze(0) )).reshape(len(self.out_dims)*n1)  
         gpytorch.settings.debug._set_state(False) # this is terrible but works, since we only take part of the covariance matrix, some dimension check cannot pass
-        covar_x = self.covar_module(x)[:,:]
+        covar_x = self.covar_module(x)
         gpytorch.settings.debug._set_state(True)
-        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x)
+        return gpytorch.distributions.MultitaskMultivariateNormal(mean_x, covar_x[pi1, pi1])
     
 
