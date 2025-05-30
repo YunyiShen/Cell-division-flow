@@ -3,3 +3,7 @@ package/cytoFD.egg-info/*
 package/cytoFD/*/__pycache__/*
 *.mp4
 newdata/*
+data/*
+*.pth
+*.npz
+*.sh.log*
