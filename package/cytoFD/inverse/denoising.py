@@ -2,14 +2,13 @@ import gpytorch
 import torch
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 from .datautil import cellPTVdata, form_mesh
-from .helmholtz import spHelm2DGPModel
 from tqdm import tqdm
 from .naivevel import velocityGPModel
 import numpy as np
 
 
 def denoisingGP(ptvdata, subsampling_rate = 0.5,
-              kernel = spHelm2DGPModel, 
+              kernel = velocityGPModel, 
               likelihood = gpytorch.likelihoods.MultitaskGaussianLikelihood(num_tasks=2), 
               n_inducing = 1000, optimizer = torch.optim.Adam,
               lr = 0.1, iter = 300, grid_size_pred = None, predict = False):
