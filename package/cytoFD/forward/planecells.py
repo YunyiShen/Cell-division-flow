@@ -95,7 +95,7 @@ class celldivflow2D():
         self.saved = None
         
     
-    def solve(self, dt, steps, save_every = 10):
+    def solve(self, dt, steps, save_every = 5):
         u = CellVariable(name="u", mesh=self.mesh, value=0.0)
         v = CellVariable(name="v", mesh=self.mesh, value=0.0)
         p = CellVariable(name="p", mesh=self.mesh, value=0.0)
@@ -152,7 +152,7 @@ class celldivflow2D():
 
             #breakpoint()
 
-            if step % save_every:
+            if step % save_every == 0:
                 u_save.append(u.value)
                 v_save.append(v.value)
                 p_tmp = p.value
@@ -163,10 +163,11 @@ class celldivflow2D():
                 p_ext_save.append(p_ext_tmp)
                 t_save.append(dt * step)
         self.saved = {"u": u_save, "v": v_save, "p": p_save, "p_ext": p_ext_save, 't': t_save}
-        u_save = np.array(u_save).reshape(steps, self.N, self.N)
-        v_save = np.array(v_save).reshape(steps, self.N, self.N)
-        p_save = np.array(p_save).reshape(steps, self.N, self.N)
-        p_ext_save = np.array(p_ext_save).reshape(steps, self.N, self.N)
+        #breakpoint()
+        u_save = np.array(u_save).reshape(-1, self.N, self.N)
+        v_save = np.array(v_save).reshape(-1, self.N, self.N)
+        p_save = np.array(p_save).reshape(-1, self.N, self.N)
+        p_ext_save = np.array(p_ext_save).reshape(-1, self.N, self.N)
         t_save = np.array(t_save)
         vel_save = np.stack((u_save,v_save), axis = 1)
 
