@@ -5,7 +5,7 @@ import matplotlib.gridspec as gridspec
 
 
 ########## time series plot ################
-simulation = np.load("../modelcell2Dmax20_norot.npz")
+simulation = np.load("./modelcell2Dmax20_norot.npz")
 u, v, p, p_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
@@ -67,7 +67,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from celluloid import Camera
 
 # Load data
-simulation = np.load("../modelcell2Dmax20_norot.npz")
+simulation = np.load("./modelcell2Dmax20_norot.npz")
 u_ts, v_ts, p, p_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
@@ -145,7 +145,7 @@ plt.close()
 ##########################################################
 
 ### load simulation ###
-simulation = np.load("../modelcell2Dmax20.npz")
+simulation = np.load("./modelcell2Dmax20.npz")
 u_ts, v_ts, p, p_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
