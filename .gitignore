@@ -7,3 +7,6 @@ data/*
 *.pth
 *.npz
 *.sh.log*
+*.log
+*.err
+*.out

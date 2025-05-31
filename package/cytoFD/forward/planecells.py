@@ -14,6 +14,15 @@ from tqdm import tqdm
 import matplotlib.gridspec as gridspec
 
 
+def rotate_precision_matrix(Lambda, theta):
+    R = np.array([
+        [np.cos(theta), -np.sin(theta)],
+        [np.sin(theta),  np.cos(theta)]
+    ])
+    return R.T @ Lambda @ R
+
+
+
 class cellBoundary2D():
     def __init__(self, center, radius = 1):
         self.radius = radius
@@ -23,32 +32,39 @@ class cellBoundary2D():
         return ((x - self.center[0])**2 + (y - self.center[1])**2) < self.radius**2
 
 class gaussianbump2D():
-    def __init__(self, center, precision = np.array([[0.25/0.04, 0],[0, 1./0.04]]), 
-                maxp = 50):
+    def __init__(self, center = None, precision = np.array([[25, 0],[0, 25**2]]), 
+                maxp = 50, theta = 0):
         self.center = center
+        precision = rotate_precision_matrix(precision, theta)
         self.precision = precision
         self.maxp = maxp
     
-    def __call__(self, x, y, t):
+    def __call__(self, x, y, t=None):
         assert self.center is not None, "center need to be set"
-        return self.maxp * np.exp(-.5*(((x - self.center[0]) * self.precision[0,0])**2 + 
-                    ((y - self.center[1]) * self.precision[1,1])**2 + 
-                    2 * self.precision[0,1] * (x - self.center[0]) * ((y - self.center[1]))))
+        dx = x - self.center[0]
+        dy = y - self.center[1]
+        xy = np.stack([dx, dy], axis=0)  # shape (2, ...)
+        quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
+        return self.maxp * np.exp(-0.5 * quadform)
 
 
 class growinggaussianbump2D():
-    def __init__(self, center = None, precision = np.array([[0.25/0.04, 0],[0, 1./0.04]]), 
-                 maxp = 50, timescale = 10.):
+    def __init__(self, center = None, precision = np.array([[25, 0],[0, 25**2]]), 
+                 maxp = 50, timescale = 1., theta = 0):
         self.center = center
+        precision = rotate_precision_matrix(precision, theta)
+        #breakpoint()
         self.precision = precision
         self.maxp = maxp
         self.timescale = timescale
     
     def __call__(self, x, y, t):
         assert self.center is not None, "center need to be set"
-        return self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-.5*(((x - self.center[0]) * self.precision[0,0])**2 + 
-                    ((y - self.center[1]) * self.precision[1,1])**2 + 
-                    2 * self.precision[0,1] * (x - self.center[0]) * ((y - self.center[1]))))
+        dx = x - self.center[0]
+        dy = y - self.center[1]
+        xy = np.stack([dx, dy], axis=0)  # shape (2, ...)
+        quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
+        return self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
 
 
 class celldivflow2D():
@@ -147,7 +163,14 @@ class celldivflow2D():
                 p_ext_save.append(p_ext_tmp)
                 t_save.append(dt * step)
         self.saved = {"u": u_save, "v": v_save, "p": p_save, "p_ext": p_ext_save, 't': t_save}
-        return u_save, v_save, p_save, p_ext_save, t_save
+        u_save = np.array(u_save).reshape(steps, self.N, self.N)
+        v_save = np.array(v_save).reshape(steps, self.N, self.N)
+        p_save = np.array(p_save).reshape(steps, self.N, self.N)
+        p_ext_save = np.array(p_ext_save).reshape(steps, self.N, self.N)
+        t_save = np.array(t_save)
+        vel_save = np.stack((u_save,v_save), axis = 1)
+
+        return vel_save, p_save, p_ext_save, t_save
     
 
     def plot_vel_p_end(self, idx = -1, thinning=2, scale = 15):
