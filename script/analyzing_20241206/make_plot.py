@@ -35,9 +35,10 @@ for i in range(6):
     V2 = V.reshape((nx, ny))
     p_ext = p_ext_ts[i].reshape((nx, ny))
 
-
+    #breakpoint()
     ax0 = fig.add_subplot(gs[i])
-    cf = ax0.contourf(X2, Y2, p_ext, levels=np.linspace(0, np.nanmax(p_ext_save), 20), cmap='coolwarm')
+    cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
+                levels=np.linspace(0, np.nanmax(p_ext_save), 20), cmap='coolwarm')
     
     ax0.quiver(
             X2[::step, ::step], Y2[::step, ::step],
@@ -103,7 +104,8 @@ for frame in range(len(t_ts)):
     V2 = v_ts[frame].reshape((nx, ny))
 
     # Contour plot for this frame
-    cf = ax0.contourf(X2, Y2, p_ext, levels=np.linspace(0, np.nanmax(p_ext_ts), 20), cmap='coolwarm')
+    cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_ts) - p_ext, 
+                levels=np.linspace(0, np.nanmax(p_ext_ts), 20), cmap='coolwarm')
 
     # Quiver plot for this frame
     ax0.quiver(X2[::step, ::step], Y2[::step, ::step], U2[::step, ::step], V2[::step, ::step],
@@ -260,8 +262,8 @@ ax0.set_yticks([])
 ax0.set_ylabel("Simulation")
 
 ax0 = fig.add_subplot(gs[1, 1])
-cf = ax0.contourf(X2, Y2, p_ext, 
-            levels=np.linspace(0, np.nanmax(p_ext_save), 20), 
+cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
+            levels=np.linspace(0, np.nanmax(p_ext_save),  20), 
             cmap='coolwarm')
 ax0.arrow(1.38, 1.38, -0.18, -0.18, 
                 head_width=0.075, 
@@ -273,8 +275,8 @@ ax0.set_yticks([])
 
 ## overlay 
 ax0 = fig.add_subplot(gs[1, 2])
-cf = ax0.contourf(X2, Y2, p_ext, 
-            levels=np.linspace(0, np.nanmax(p_ext_save), 20), 
+cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
+            levels=np.linspace(0, np.nanmax(p_ext_save),  20), 
             cmap='coolwarm')
 ax0.quiver(
             X2[::step, ::step], Y2[::step, ::step],
