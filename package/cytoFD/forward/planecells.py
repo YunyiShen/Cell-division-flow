@@ -12,6 +12,7 @@ from fipy import FaceVariable
 from fipy.tools import numerix
 from tqdm import tqdm
 import matplotlib.gridspec as gridspec
+import copy
 
 
 def rotate_precision_matrix(Lambda, theta):
@@ -153,25 +154,18 @@ class celldivflow2D():
             #breakpoint()
 
             if step % save_every == 0:
-                u_save.append(u.value)
-                v_save.append(v.value)
-                p_tmp = p.value
-                p_tmp[np.logical_not(inside)] = 0.
+                u_save.append(copy.deepcopy(u.value))
+                v_save.append(copy.deepcopy(v.value))
+                p_tmp = copy.deepcopy(p.value)
+                p_tmp[np.logical_not(inside)] = np.nan
                 p_save.append(p_tmp)
-                p_ext_tmp = p_ext.value
-                p_ext_tmp[np.logical_not(inside)] = 0.
+                p_ext_tmp = copy.deepcopy(p_ext.value)
+                p_ext_tmp[np.logical_not(inside)] = np.nan
                 p_ext_save.append(p_ext_tmp)
                 t_save.append(dt * step)
         self.saved = {"u": u_save, "v": v_save, "p": p_save, "p_ext": p_ext_save, 't': t_save}
         #breakpoint()
-        u_save = np.array(u_save).reshape(-1, self.N, self.N)
-        v_save = np.array(v_save).reshape(-1, self.N, self.N)
-        p_save = np.array(p_save).reshape(-1, self.N, self.N)
-        p_ext_save = np.array(p_ext_save).reshape(-1, self.N, self.N)
-        t_save = np.array(t_save)
-        vel_save = np.stack((u_save,v_save), axis = 1)
-
-        return vel_save, p_save, p_ext_save, t_save
+        return u_save, v_save, p_save, p_ext_save, t_save, x, y, self.N
     
 
     def plot_vel_p_end(self, idx = -1, thinning=2, scale = 15):

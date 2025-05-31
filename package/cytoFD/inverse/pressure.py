@@ -52,7 +52,7 @@ def project_to_divfree(u_meas, dx=1.0):
     #breakpoint()
     return u_divfree
 
-def pressure_recon(u, L = 78, rho = 1., mu = 0.01, dt = 10):
+def pressure_recon(u, L = 78, rho = 1., mu = 0.01, dt = .1):
     timesteps = len(u)
     N = int(math.sqrt(u[0].shape[0]))
     #breakpoint()

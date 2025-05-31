@@ -10,3 +10,6 @@ data/*
 *.log
 *.err
 *.out
+*.mp4
+*.pdf
+package/cytoFD/__pycache__/*
