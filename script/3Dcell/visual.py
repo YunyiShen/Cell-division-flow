@@ -181,7 +181,7 @@ def visualize_streamlines(u, v, w, p, x, y, z, filename="3Dstreamlines.pdf"):
         im = Image.open(filename.replace(".pdf", ".png"))
         im.save(filename)
 
-simures = np.load("modelcell3Dmax20_gird36_steps200.npz")
+simures = np.load("modelcell3Dmax20_gird36_steps500.npz")
 #breakpoint()
 
 visualize_streamlines(simures['u'][-1], 
