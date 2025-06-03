@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import axes3d
 
 
-def plot_yz_slice_quiver(u, v, w, p, x, y, z, N = 36, slice_x=None, stride=1, filename="yz_slice.pdf"):
+def plot_yz_slice_quiver(u, v, w, stress, x, y, z, N = 36, slice_x=None, stride=1, filename="yz_slice.pdf"):
     """
     Plot a Y-Z cross section of pressure and velocity using matplotlib quiver.
     """
@@ -14,7 +14,7 @@ def plot_yz_slice_quiver(u, v, w, p, x, y, z, N = 36, slice_x=None, stride=1, fi
     u = u.reshape((N, N, N))
     v = v.reshape((N, N, N))
     w = w.reshape((N, N, N))
-    p = p.reshape((N, N, N))
+    stress = stress.reshape((N, N, N))
     x = x.reshape((N, N, N))
     y = y.reshape((N, N, N))
     z = z.reshape((N, N, N))
@@ -30,7 +30,7 @@ def plot_yz_slice_quiver(u, v, w, p, x, y, z, N = 36, slice_x=None, stride=1, fi
     z_plane = z[:, :, slice_idx]
     u_plane = v[:, :, slice_idx]     # your saved u array should be reshaped similarly
     v_plane = w[:, :, slice_idx]
-    p_plane = p[:, :, slice_idx]
+    p_plane = stress[:, :, slice_idx]
 
     # Subsample for clarity
     y_sub = y_plane[::stride, ::stride]
@@ -90,7 +90,7 @@ def subsample_streamline_points(streamlines, step=10):
 
     return subsampled
 
-def visualize_streamlines(u, v, w, p, x, y, z, filename="3Dstreamlines.pdf"):
+def visualize_streamlines(u, v, w, stress, x, y, z, filename="3Dstreamlines.pdf"):
     N = int(round(np.cbrt(len(x))))
     X = x.reshape((N, N, N))
     Y = y.reshape((N, N, N))
@@ -98,7 +98,7 @@ def visualize_streamlines(u, v, w, p, x, y, z, filename="3Dstreamlines.pdf"):
     U = u.reshape((N, N, N))
     V = v.reshape((N, N, N))
     W = w.reshape((N, N, N))
-    P = p.reshape((N, N, N))
+    Stress_ = stress.reshape((N, N, N))
 
     # Flatten points and vectors
     points = np.column_stack((X.ravel(), Y.ravel(), Z.ravel()))
@@ -142,7 +142,7 @@ def visualize_streamlines(u, v, w, p, x, y, z, filename="3Dstreamlines.pdf"):
     structured = pv.StructuredGrid()
     structured.points = np.column_stack((X.ravel(), Y.ravel(), Z.ravel()))
     structured.dimensions = X.shape
-    structured["stress"] = np.nanmax(P) - P.ravel()
+    structured["stress"] = Stress_.ravel()
 
     # Plot
     plotter = pv.Plotter()
@@ -187,7 +187,7 @@ simures = np.load("modelcell3Dmax20_gird36_steps500.npz")
 visualize_streamlines(simures['u'][-1], 
                                 simures['v'][-1], 
                                 simures['w'][-1], 
-                                simures['p_ext'][-1], 
+                                simures['stress_ext'][-1], 
                                 simures['x'], 
                                 simures['y'], 
                                 simures['z'])

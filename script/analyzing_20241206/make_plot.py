@@ -6,7 +6,7 @@ import matplotlib.gridspec as gridspec
 
 ########## time series plot ################
 simulation = np.load("./modelcell2Dmax20_norot.npz")
-u, v, p, p_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
+u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
@@ -14,7 +14,7 @@ n_frame = len(t)
 n_plot_time_series = 5
 u_ts = u[::(n_frame//n_plot_time_series)]
 v_ts = v[::(n_frame//n_plot_time_series)]
-p_ext_ts = p_ext_save[::(n_frame//n_plot_time_series)]
+stress_ext_ts = stress_ext_save[::(n_frame//n_plot_time_series)]
 t_ts = t[::(n_frame//n_plot_time_series)]
 
 #x,y = np.meshgrid(np.linspace(0, 2, n_grid), np.linspace(0, 2, n_grid))
@@ -33,12 +33,12 @@ for i in range(6):
     Y2 = Y.reshape((nx, ny))
     U2 = U.reshape((nx, ny))
     V2 = V.reshape((nx, ny))
-    p_ext = p_ext_ts[i].reshape((nx, ny))
+    stress_ext = stress_ext_ts[i].reshape((nx, ny))
 
     #breakpoint()
     ax0 = fig.add_subplot(gs[i])
-    cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
-                levels=np.linspace(0, np.nanmax(p_ext_save), 20), cmap='viridis')
+    cf = ax0.contourf(X2, Y2, stress_ext, 
+                levels=np.linspace(0, np.nanmax(stress_ext_save), 20), cmap='viridis')
     
     ax0.quiver(
             X2[::step, ::step], Y2[::step, ::step],
@@ -68,14 +68,14 @@ from celluloid import Camera
 
 # Load data
 simulation = np.load("./modelcell2Dmax20_norot.npz")
-u_ts, v_ts, p, p_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
+u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
 X2 = X.reshape((nx, ny))
 Y2 = Y.reshape((nx, ny))
 
-p_ext_max = np.nanmax(p_ext_ts)
+stress_ext_max = np.nanmax(stress_ext_ts)
 
 #fig, ax = plt.subplots(figsize=(6,6))
 fig = plt.figure(figsize=(8, 6))
@@ -99,13 +99,13 @@ for frame in range(len(t_ts)):
     #ax0.clear()
     #cax1.clear()
 
-    p_ext = p_ext_ts[frame].reshape((nx, ny))
+    stress_ext = stress_ext_ts[frame].reshape((nx, ny))
     U2 = u_ts[frame].reshape((nx, ny))
     V2 = v_ts[frame].reshape((nx, ny))
 
     # Contour plot for this frame
-    cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_ts) - p_ext, 
-                levels=np.linspace(0, np.nanmax(p_ext_ts), 20), cmap='viridis')
+    cf = ax0.contourf(X2, Y2, np.nanmax(stress_ext_ts) - stress_ext, 
+                levels=np.linspace(0, np.nanmax(stress_ext_ts), 20), cmap='viridis')
 
     # Quiver plot for this frame
     ax0.quiver(X2[::step, ::step], Y2[::step, ::step], U2[::step, ::step], V2[::step, ::step],
@@ -146,7 +146,7 @@ plt.close()
 
 ### load simulation ###
 simulation = np.load("./modelcell2Dmax20.npz")
-u_ts, v_ts, p, p_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['p_ext'], simulation['t']
+u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
@@ -246,7 +246,7 @@ X2 = X.reshape((nx, ny))
 Y2 = Y.reshape((nx, ny))
 U2 = U.reshape((nx, ny))
 V2 = V.reshape((nx, ny))
-p_ext = p_ext_ts[-1].reshape((nx, ny))
+stress_ext = stress_ext_ts[-1].reshape((nx, ny))
 
 
 ax0 = fig.add_subplot(gs[1, 0])
@@ -262,8 +262,8 @@ ax0.set_yticks([])
 ax0.set_ylabel("Simulation")
 
 ax0 = fig.add_subplot(gs[1, 1])
-cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
-            levels=np.linspace(0, np.nanmax(p_ext_save),  20), 
+cf = ax0.contourf(X2, Y2, stress_ext, 
+            levels=np.linspace(0, np.nanmax(stress_ext_save),  20), 
             cmap='viridis')
 ax0.arrow(1.38, 1.38, -0.18, -0.18, 
                 head_width=0.075, 
@@ -275,8 +275,8 @@ ax0.set_yticks([])
 
 ## overlay 
 ax0 = fig.add_subplot(gs[1, 2])
-cf = ax0.contourf(X2, Y2, np.nanmax(p_ext_save) - p_ext, 
-            levels=np.linspace(0, np.nanmax(p_ext_save),  20), 
+cf = ax0.contourf(X2, Y2, stress_ext, 
+            levels=np.linspace(0, np.nanmax(stress_ext_save),  20), 
             cmap='viridis')
 ax0.quiver(
             X2[::step, ::step], Y2[::step, ::step],

@@ -38,14 +38,14 @@ class growinggaussianbump3D():
         dz = z - self.center[2]
         xy = np.stack([dx, dy, dz], axis=0)  # shape (2, ...)
         quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
-        return self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
+        return self.maxp - self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
 
 
 class celldivflow3D():
     def __init__(self, domain_size = 2, N = 100, 
                 cell_radius = 1.0, 
                 mu = 0.01, rho = 1.0,
-                pressure_field = None
+                stress_field = None
                 ):
         self.L = domain_size
         L = domain_size
@@ -57,12 +57,12 @@ class celldivflow3D():
         self.cellradius = cell_radius
         self.thecell = cellBoundary3D(self.cellcenter, cell_radius)
 
-        if pressure_field is None:
-            self.pressure_field = growinggaussianbump3D(self.cellcenter)
+        if stress_field is None:
+            self.stress_field = growinggaussianbump3D(self.cellcenter)
         else:
-            if pressure_field.center is None:
-                pressure_field.center = self.cellcenter
-            self.pressure_field = pressure_field
+            if stress_field.center is None:
+                stress_field.center = self.cellcenter
+            self.stress_field = stress_field
         
         self.mesh = Grid3D(dx=self.dx, dy=self.dx, dz=self.dx, nx=N, ny=N, nz=N)# Grid2D(dx=self.dx, dy=self.dx, nx=N, ny=N)
 
@@ -77,7 +77,7 @@ class celldivflow3D():
         x, y, z = self.mesh.cellCenters
         for var in [u, v, w]:
             var.constrain(0.0, self.mesh.exteriorFaces)
-        p_ext = CellVariable(mesh=self.mesh, value=0.0)
+        stress_ext = CellVariable(mesh=self.mesh, value=0.0)
         # -------------------------
         # Solver
         # -------------------------
@@ -86,34 +86,34 @@ class celldivflow3D():
         v_save = []
         w_save = []
         p_save = []
-        p_ext_save = []
+        stress_ext_save = []
         t_save = []
-        #p_ext.value = self.pressure_field(x, y, 0)
+        #stress_ext.value = self.stress_field(x, y, 0)
         for step in tqdm(range(steps)):
             velocity = FaceVariable(name="velocity", mesh=self.mesh, rank=1)
             velocity[:] = numerix.array([u.arithmeticFaceValue, 
                                          v.arithmeticFaceValue, 
                                          w.arithmeticFaceValue ])
-            #p_ext = CellVariable(mesh=self.mesh, value=0.0)
-            p_ext.value = self.pressure_field(x, y, z, step*dt)
+            #stress_ext = CellVariable(mesh=self.mesh, value=0.0)
+            stress_ext.value = self.stress_field(x, y, z, step*dt)
             # Add pressure gradient as explicit source term in momentum eq
             u_star_eq = (
                 TransientTerm(var=u)
                 == DiffusionTerm(coeff=self.mu / self.rho, var=u)
                 - ConvectionTerm(coeff=velocity, var=u)
-                - (1.0 / self.rho) * (p_ext.grad[0])
+                + (1.0 / self.rho) * (stress_ext.grad[0])
             )
             v_star_eq = (
                 TransientTerm(var=v)
                 == DiffusionTerm(coeff=self.mu / self.rho, var=v)
                 - ConvectionTerm(coeff=velocity, var=v)
-                - (1.0 / self.rho) * (p_ext.grad[1])
+                + (1.0 / self.rho) * (stress_ext.grad[1])
             )
             w_star_eq = (
                 TransientTerm(var=w)
                 == DiffusionTerm(coeff=self.mu / self.rho, var=w)
                 - ConvectionTerm(coeff=velocity, var=w)
-                - (1.0 / self.rho) * (p_ext.grad[2])
+                + (1.0 / self.rho) * (stress_ext.grad[2])
             )
             u_star_eq.solve(dt=dt, solver=solver)
             v_star_eq.solve(dt=dt, solver=solver)
@@ -149,10 +149,10 @@ class celldivflow3D():
                 p_tmp = copy.deepcopy(p.value)
                 p_tmp[np.logical_not(inside)] = np.nan
                 p_save.append(p_tmp)
-                p_ext_tmp = copy.deepcopy(p_ext.value)
-                p_ext_tmp[np.logical_not(inside)] = np.nan
-                p_ext_save.append(p_ext_tmp)
+                stress_ext_tmp = copy.deepcopy(stress_ext.value)
+                stress_ext_tmp[np.logical_not(inside)] = np.nan
+                stress_ext_save.append(stress_ext_tmp)
                 t_save.append(dt * step)
-        self.saved = {"u": u_save, "v": v_save, "w": w_save,"p": p_save, "p_ext": p_ext_save, 't': t_save}
+        self.saved = {"u": u_save, "v": v_save, "w": w_save,"p": p_save, "stress_ext": stress_ext_save, 't': t_save}
         #breakpoint()
-        return u_save, v_save, w_save, p_save, p_ext_save, t_save, x, y, z, self.N
+        return u_save, v_save, w_save, p_save, stress_ext_save, t_save, x, y, z, self.N

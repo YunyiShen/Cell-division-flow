@@ -46,7 +46,7 @@ class gaussianbump2D():
         dy = y - self.center[1]
         xy = np.stack([dx, dy], axis=0)  # shape (2, ...)
         quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
-        return self.maxp * np.exp(-0.5 * quadform)
+        return self.maxp - self.maxp * np.exp(-0.5 * quadform)
 
 
 class growinggaussianbump2D():
@@ -65,14 +65,14 @@ class growinggaussianbump2D():
         dy = y - self.center[1]
         xy = np.stack([dx, dy], axis=0)  # shape (2, ...)
         quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
-        return self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
+        return self.maxp - self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
 
 
 class celldivflow2D():
     def __init__(self, domain_size = 2, N = 100, 
                 cell_radius = 1.0, 
                 mu = 0.01, rho = 1.0,
-                pressure_field = None
+                stress_field = None
                 ):
         self.L = domain_size
         L = domain_size
@@ -84,12 +84,12 @@ class celldivflow2D():
         self.cellradius = cell_radius
         self.thecell = cellBoundary2D(self.cellcenter, cell_radius)
 
-        if pressure_field is None:
-            self.pressure_field = gaussianbump2D(self.cellcenter)
+        if stress_field is None:
+            self.stress_field = growinggaussianbump2D(self.cellcenter)
         else:
-            if pressure_field.center is None:
-                pressure_field.center = self.cellcenter
-            self.pressure_field = pressure_field
+            if stress_field.center is None:
+                stress_field.center = self.cellcenter
+            self.stress_field = stress_field
         
         self.mesh = Grid2D(dx=self.dx, dy=self.dx, nx=N, ny=N)
 
@@ -103,7 +103,7 @@ class celldivflow2D():
         x, y = self.mesh.cellCenters
         for var in [u, v]:
             var.constrain(0.0, self.mesh.exteriorFaces)
-        p_ext = CellVariable(mesh=self.mesh, value=0.0)
+        stress_ext = CellVariable(mesh=self.mesh, value=0.0)
         # -------------------------
         # Solver
         # -------------------------
@@ -111,26 +111,26 @@ class celldivflow2D():
         u_save = []
         v_save = []
         p_save = []
-        p_ext_save = []
+        stress_ext_save = []
         t_save = []
-        #p_ext.value = self.pressure_field(x, y, 0)
+        #stress_ext.value = self.stress_field(x, y, 0)
         for step in tqdm(range(steps)):
             velocity = FaceVariable(name="velocity", mesh=self.mesh, rank=1)
             velocity[:] = numerix.array([u.arithmeticFaceValue, v.arithmeticFaceValue])
-            #p_ext = CellVariable(mesh=self.mesh, value=0.0)
-            p_ext.value = self.pressure_field(x, y, step*dt)
+            #stress_ext = CellVariable(mesh=self.mesh, value=0.0)
+            stress_ext.value = self.stress_field(x, y, step*dt)
             # Add pressure gradient as explicit source term in momentum eq
             u_star_eq = (
                 TransientTerm(var=u)
                 == DiffusionTerm(coeff=self.mu / self.rho, var=u)
                 - ConvectionTerm(coeff=velocity, var=u)
-                - (1.0 / self.rho) * (p_ext.grad[0])
+                + (1.0 / self.rho) * (stress_ext.grad[0])
             )
             v_star_eq = (
                 TransientTerm(var=v)
                 == DiffusionTerm(coeff=self.mu / self.rho, var=v)
                 - ConvectionTerm(coeff=velocity, var=v)
-                - (1.0 / self.rho) * (p_ext.grad[1])
+                + (1.0 / self.rho) * (stress_ext.grad[1])
             )
             u_star_eq.solve(dt=dt, solver=solver)
             v_star_eq.solve(dt=dt, solver=solver)
@@ -159,13 +159,13 @@ class celldivflow2D():
                 p_tmp = copy.deepcopy(p.value)
                 p_tmp[np.logical_not(inside)] = np.nan
                 p_save.append(p_tmp)
-                p_ext_tmp = copy.deepcopy(p_ext.value)
-                p_ext_tmp[np.logical_not(inside)] = np.nan
-                p_ext_save.append(p_ext_tmp)
+                stress_ext_tmp = copy.deepcopy(stress_ext.value)
+                stress_ext_tmp[np.logical_not(inside)] = np.nan
+                stress_ext_save.append(stress_ext_tmp)
                 t_save.append(dt * step)
-        self.saved = {"u": u_save, "v": v_save, "p": p_save, "p_ext": p_ext_save, 't': t_save}
+        self.saved = {"u": u_save, "v": v_save, "p": p_save, "stress_ext": stress_ext_save, 't': t_save}
         #breakpoint()
-        return u_save, v_save, p_save, p_ext_save, t_save, x, y, self.N
+        return u_save, v_save, p_save, stress_ext_save, t_save, x, y, self.N
     
 
     def plot_vel_p_end(self, idx = -1, thinning=2, scale = 15):
@@ -177,11 +177,11 @@ class celldivflow2D():
         Y = self.mesh.cellCenters[1].value
 
         p = self.saved['p'][idx]
-        p_ext = self.saved['p_ext'][idx]
+        stress_ext = self.saved['stress_ext'][idx]
         u = self.saved['u'][idx]
         v = self.saved['v'][idx]
         inside = self.thecell.inside(X, Y)
-        p_ext[np.logical_not(inside)] = np.nan
+        stress_ext[np.logical_not(inside)] = np.nan
 
         U, V = np.where(inside, u, np.nan), np.where(inside, v, np.nan)
         nx, ny = self.N, self.N  # grid dims
@@ -189,7 +189,7 @@ class celldivflow2D():
         Y2 = Y.reshape((nx, ny))
         U2 = U.reshape((nx, ny))
         V2 = V.reshape((nx, ny))
-        p_ext = p_ext.reshape((nx, ny))
+        stress_ext = stress_ext.reshape((nx, ny))
         p = p.reshape((nx, ny))
 
         step = thinning
@@ -211,19 +211,19 @@ class celldivflow2D():
         ax0.set_title("velocity field")
         ax0.set_aspect('equal')
 
-        # Pressure p + p_ext
+        # Pressure p + stress_ext
         ax1 = fig.add_subplot(gs[1])
-        im1 = ax1.contourf(X2, Y2, p + p_ext, levels=50, cmap='coolwarm')
+        im1 = ax1.contourf(X2, Y2, p + stress_ext, levels=50, cmap='coolwarm')
         ax1.set_title('Overall pressure p')
         ax1.set_aspect('equal')
 
         cax1 = fig.add_subplot(gs[2])
         fig.colorbar(im1, cax=cax1)
 
-        # External pressure p_ext
+        # External pressure stress_ext
         ax2 = fig.add_subplot(gs[3])
-        im2 = ax2.contourf(X2, Y2, p_ext, levels=50, cmap='coolwarm')
-        ax2.set_title('External pressure bump p_ext (fixed)')
+        im2 = ax2.contourf(X2, Y2, stress_ext, levels=50, cmap='coolwarm')
+        ax2.set_title('External stress bump')
         ax2.set_aspect('equal')
 
         cax2 = fig.add_subplot(gs[4])
