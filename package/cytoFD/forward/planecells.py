@@ -213,7 +213,7 @@ class celldivflow2D():
 
         # Pressure p + stress_ext
         ax1 = fig.add_subplot(gs[1])
-        im1 = ax1.contourf(X2, Y2, p - stress_ext, levels=np.linspace(0, np.nanmax(self.saved['p'] - self.saved['stress_ext']), 50), cmap='viridis')
+        im1 = ax1.contourf(X2, Y2, p - stress_ext, levels=50, cmap='viridis')
         ax1.set_title('Overall pressure p')
         ax1.set_aspect('equal')
 
