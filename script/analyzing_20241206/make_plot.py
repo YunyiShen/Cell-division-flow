@@ -104,7 +104,7 @@ for frame in range(len(t_ts)):
     V2 = v_ts[frame].reshape((nx, ny))
 
     # Contour plot for this frame
-    cf = ax0.contourf(X2, Y2, np.nanmax(stress_ext_ts) - stress_ext, 
+    cf = ax0.contourf(X2, Y2, stress_ext, 
                 levels=np.linspace(0, np.nanmax(stress_ext_ts), 20), cmap='viridis')
 
     # Quiver plot for this frame

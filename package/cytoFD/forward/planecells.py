@@ -213,7 +213,7 @@ class celldivflow2D():
 
         # Pressure p + stress_ext
         ax1 = fig.add_subplot(gs[1])
-        im1 = ax1.contourf(X2, Y2, p + stress_ext, levels=50, cmap='coolwarm')
+        im1 = ax1.contourf(X2, Y2, p + stress_ext, levels=50, cmap='viridis')
         ax1.set_title('Overall pressure p')
         ax1.set_aspect('equal')
 
@@ -222,7 +222,7 @@ class celldivflow2D():
 
         # External pressure stress_ext
         ax2 = fig.add_subplot(gs[3])
-        im2 = ax2.contourf(X2, Y2, stress_ext, levels=50, cmap='coolwarm')
+        im2 = ax2.contourf(X2, Y2, stress_ext, levels=np.linspace(0, np.nanmax(self.saved['stress_ext']), 50), cmap='viridis')
         ax2.set_title('External stress bump')
         ax2.set_aspect('equal')
 
