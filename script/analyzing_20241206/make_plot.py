@@ -22,7 +22,7 @@ t_ts = t[::(n_frame//n_plot_time_series)]
 fig = plt.figure(figsize=(26, 5))
 gs = gridspec.GridSpec(1, 7, width_ratios=[1, 1, 1, 1, 1, 1, 0.03])
 
-step = 7
+step = 8
 scale = 60 * v.std()
 
 for i in range(6):
@@ -78,6 +78,10 @@ Y2 = Y.reshape((nx, ny))
 stress_ext_max = np.nanmax(stress_ext_ts)
 
 #fig, ax = plt.subplots(figsize=(6,6))
+
+
+### animation
+'''
 fig = plt.figure(figsize=(8, 6))
 gs = gridspec.GridSpec(1, 2, width_ratios=[1, 0.03])
 camera = Camera(fig)
@@ -135,7 +139,7 @@ plt.show()
 
 # Close the figure after showing
 plt.close()
-
+'''
 
 
 
@@ -178,10 +182,10 @@ fig = plt.figure(figsize=(10, 6))
 gs = gridspec.GridSpec(2, 4, width_ratios=[1, 1, 1, 0.03])
 
 ax0 = fig.add_subplot(gs[0, 0])
-ax0.quiver(X_mesh[::4,0], 
-                 X_mesh[::4,1], 
-                 vel_data[::4,0], 
-                 vel_data[::4,1], 
+ax0.quiver(X_mesh[::step,0], 
+                 X_mesh[::step,1], 
+                 vel_data[::step,0], 
+                 vel_data[::step,1], 
                  scale = 0.2,
                  width = 0.005, 
                  color = "black")
@@ -222,10 +226,10 @@ cf = ax0.pcolormesh(X_conc[::5, ::5], Y_conc[::5, ::5], conc_plot[::5, ::5],
                 norm=norm, 
                 cmap='viridis')
 
-ax0.quiver(X_mesh[::4,0], 
-                 X_mesh[::4,1], 
-                 vel_data[::4,0], 
-                 vel_data[::4,1], 
+ax0.quiver(X_mesh[::6,0], 
+                 X_mesh[::6,1], 
+                 vel_data[::6,0], 
+                 vel_data[::6,1], 
                  scale = 0.2,
                  width = 0.005, 
                  color = "black")
@@ -251,8 +255,8 @@ stress_ext = stress_ext_ts[-1].reshape((nx, ny))
 
 ax0 = fig.add_subplot(gs[1, 0])
 ax0.quiver(
-            X2[::step, ::step], Y2[::step, ::step],
-            U2[::step, ::step], V2[::step, ::step],
+            X2[::10, ::10], Y2[::10, ::10],
+            U2[::10, ::10], V2[::10, ::10],
             scale=10,
             width=0.005,
             color='black'
@@ -279,8 +283,8 @@ cf = ax0.contourf(X2, Y2, stress_ext,
             levels=np.linspace(0, np.nanmax(stress_ext_save),  20), 
             cmap='viridis')
 ax0.quiver(
-            X2[::step, ::step], Y2[::step, ::step],
-            U2[::step, ::step], V2[::step, ::step],
+            X2[::10, ::10], Y2[::10, ::10],
+            U2[::10, ::10], V2[::10, ::10],
             scale=10,
             width=0.005,
             color='black'
@@ -294,12 +298,7 @@ cbar.set_label('Model stress due to actin')
 #ax0.set_xticks([])
 #ax0.set_yticks([])
 
-
-
-
-
-
-
 fig.tight_layout()
 fig.savefig("experiments.pdf")
+
 
