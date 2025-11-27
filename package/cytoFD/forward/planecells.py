@@ -80,7 +80,7 @@ class growinggaussianbump2D():
         quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
         return self.maxp - self.maxp * (1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)
 
-
+'''
 class celldivflow2D():
     def __init__(self, domain_size = 2, N = 100, 
                 cell_radius = 1.0, 
@@ -439,9 +439,12 @@ class celldivflow2D2():
 
         fig.tight_layout()
         return fig, (ax0, ax1, ax2)
+'''
 
-
-class celldivflow2D3():
+class celldivflow2D():
+    '''
+    Stable implementation with a lot of numerical techniques
+    '''
     def __init__(self, domain_size=2, N=100, cell_radius=1.0,
                  mu=0.01, rho=1.0, stress_field=None):
 
@@ -488,37 +491,34 @@ class celldivflow2D3():
         # Saving lists
         u_save, v_save, p_save, stress_save, t_save = [], [], [], [], []
 
-        # --- PRE-CALCULATE MASK (Optimization) ---
-        # We calculate the mask once. 
-        # Inside = 0 (fluid flows free)
-        # Outside = 1 (fluid hits "porous" wall)
         x0, y0 = self.cellcenter
         r = self.cellradius
-        rdist = numerix.sqrt((x - x0)**2 + (y - y0)**2 + 1e-12)
+        rdist = numerix.sqrt((x - x0)**2 + (y - y0)**2)
         
-        # FIX 2: Penalize EVERYTHING outside, not just a band
+        # important soft boundary
         mask_array = (rdist >= r).astype(float) 
-        chi = CellVariable(mesh=self.mesh, value=mask_array)
+        epsilon = 1.5 * self.dx
+        smooth_mask = 0.5 * (1 + numerix.tanh((rdist - self.cellradius) / epsilon))
+        chi = CellVariable(mesh=self.mesh, value=smooth_mask)
         
         # Brinkman Coefficient (High Friction)
-        alpha = 1e6 
+        alpha = 1e9 
 
         for step in tqdm(range(steps)):
             
             # Update external stress
-            stress_ext.value = self.stress_field(x, y, step*dt)
+            raw_stress = self.stress_field(x, y, step*dt)
+            stress_ext.value = raw_stress * (1.0 - mask_array)
 
             # --- PREDICTOR STEP ---
             velocity = FaceVariable(mesh=self.mesh, rank=1)
             velocity[:] = numerix.array([u.arithmeticFaceValue, v.arithmeticFaceValue])
-
-            # FIX 1: Use ImplicitSourceTerm for penalization
-            # FIX 4: Use HybridConvectionTerm for stability
+            
             
             u_star_eq = (TransientTerm(var=u)
                          == DiffusionTerm(coeff=self.mu/self.rho, var=u)
                          - HybridConvectionTerm(coeff=velocity, var=u)
-                         + (1.0/self.rho) * stress_ext.grad[0]
+                         + (1.0/self.rho) * stress_ext.grad[0] 
                          - ImplicitSourceTerm(coeff=alpha * chi, var=u))
             
              
@@ -526,18 +526,18 @@ class celldivflow2D3():
             v_star_eq = (TransientTerm(var=v)
                          == DiffusionTerm(coeff=self.mu/self.rho, var=v)
                          - HybridConvectionTerm(coeff=velocity, var=v)
-                         + (1.0/self.rho) * stress_ext.grad[1]
+                         + (1.0/self.rho) * stress_ext.grad[1] 
                          - ImplicitSourceTerm(coeff=alpha * chi, var=v))
 
             u_star_eq.solve(dt=dt, solver=solver)
             v_star_eq.solve(dt=dt, solver=solver)
 
             # --- PRESSURE POISSON STEP ---
-            # Re-calculate divergence based on new u_star
+            
             velocity[:] = numerix.array([u.arithmeticFaceValue, v.arithmeticFaceValue])
             div_u_star = velocity.divergence
             
-            # FIX 3: Removed "- div_f". The stress is already in u_star.
+            
             pressure_eq = DiffusionTerm(var=p) == (self.rho/dt) * div_u_star
             pressure_eq.solve(var=p, solver=solver)
 
@@ -545,9 +545,10 @@ class celldivflow2D3():
             u.value[:] -= (dt/self.rho) * p.grad[0]
             v.value[:] -= (dt/self.rho) * p.grad[1]
 
-            # FIX 2 (Part B): DO NOT manually set values to 0.0 outside.
-            # The ImplicitSourceTerm has already done this physically.
-            # Forcing it here creates shockwaves.
+            
+            # soft 0 on boundary
+            u.value[:] *= (1.-chi)
+            v.value[:] *= (1.-chi)
             
             # --- SAVE ---
             if step % save_every == 0:
