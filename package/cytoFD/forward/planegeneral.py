@@ -17,7 +17,7 @@ def rotate_precision_matrix(Lambda, theta):
     return R.T @ Lambda @ R
 
 class growinggaussianbump2Dconc():
-    def __init__(self, precision = np.array([[25, 0],[0, 25**2]])*4, 
+    def __init__(self, precision = np.array([[25, 0],[0, 25**2]]), 
                  timescale = 1., theta = 0):
         precision = rotate_precision_matrix(precision, theta)
         #breakpoint()
@@ -137,117 +137,91 @@ class CellDivFlow2D:
         self.plotting_mask = self.wall_mask
         
         # Variables
-        self.u = CellVariable(mesh=self.mesh, name="u", value=0., hasOld=True)
-        self.v = CellVariable(mesh=self.mesh, name="v", value=0., hasOld=True)
-        self.p = CellVariable(mesh=self.mesh, name="p", value=0., hasOld=True)
+        
 
-    def solve(self, biology_model, dt, steps, 
-              save_every=10, alpha_wall=1e9, sweeps=5):
-        """
-        sweeps: Number of PISO iterations per time step (3-5 is usually enough)
-        """
+    def solve(self, biology_model, dt, steps, alpha_wall=1e4, save_every = 10):
         x, y = self.mesh.cellCenters
         # Sync Geometry
         biology_model.set_geometry(self.L, self.cellcenter)
+        # 1. Setup
+        u = CellVariable(mesh=self.mesh, name="u", value=0.)
+        v = CellVariable(mesh=self.mesh, name="v", value=0.)
+        p = CellVariable(mesh=self.mesh, name="p", value=0.)
+        for var in [u, v]:
+            var.constrain(0.0, self.mesh.exteriorFaces)
+
         
         # Fields
         total_drag = CellVariable(mesh=self.mesh, value=0.0)
-        stress_x   = CellVariable(mesh=self.mesh, value=0.0)
-        stress_y   = CellVariable(mesh=self.mesh, value=0.0)
-        
-        # Helper Variables
-        velocity_vector = FaceVariable(mesh=self.mesh, rank=1)
-        p_corr = CellVariable(mesh=self.mesh, value=0.0)
+        stress_ext = CellVariable(mesh=self.mesh, value=0.0)
         
         solver = LinearLUSolver()
-
-        # Storage
         u_save, v_save, p_save, stress_save, drag_save, t_save = [], [], [], [], [], []
 
-        print(f"Starting PISO Simulation: {steps} steps, dt={dt}, wall={alpha_wall:.0e}")
-        
         for step in tqdm(range(steps)):
             t = step * dt
+            velocity = FaceVariable(mesh=self.mesh, rank=1)
+            velocity[:] = numerix.array([u.arithmeticFaceValue, v.arithmeticFaceValue])
+            # --- A. PHYSICS UPDATE ---
+            # 1. Stress
+            raw_stress = biology_model.get_stress(self.mesh.x, self.mesh.y, t)
+            stress_ext.value = raw_stress * (1.0 - self.chi.value)
             
-            # A. Update Old Values (Inertia)
-            self.u.updateOld()
-            self.v.updateOld()
+            # 2. Drag 
+            # Bio (Inside) + Wall (Outside)
+            # alpha_wall = 1e4 is PLENTY. Do not use 1e9.
+            bio_drag = biology_model.get_drag(self.mesh.x, self.mesh.y, t)
+            total_drag.value = bio_drag * (1.0 - self.chi.value) + alpha_wall * self.chi.value
+            #breakpoint()
+            # --- B. PREDICTOR STEP (Implicit Drag) ---
+            # We use the 'face_velocity' from the PREVIOUS step to advect.
+            # This is much more stable than interpolating u/v every time.
             
-            # B. Update Physics
-            bio_drag_val = biology_model.get_drag(self.mesh.x, self.mesh.y, t)
+            u_star_eq = (TransientTerm(var=u) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=u)
+                         == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=u)
+                         - HybridConvectionTerm(coeff=velocity, var=u)
+                         + (1.0/biology_model.rho) * stress_ext.grad[0] 
+                         ) # Implicit Drag
             
-            # Blend Bio Drag (Inside) and Wall Drag (Outside)
-            # Safe to use 1e9 here because matrices are separate
-            total_drag.value = bio_drag_val * (1.0 - self.chi.value) + alpha_wall * self.chi.value
+            v_star_eq = (TransientTerm(var=v) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=v)
+                         == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=v)
+                         - HybridConvectionTerm(coeff=velocity, var=v)
+                         + (1.0/biology_model.rho) * stress_ext.grad[1] 
+                         ) # Implicit Drag
+
+            u_star_eq.solve(dt=dt, solver=solver)
+            v_star_eq.solve(dt=dt, solver=solver)
+
+            # --- C. SIMPLIFIED PRESSURE PROJECTION ---
+            velocity[:] = numerix.array([u.arithmeticFaceValue, v.arithmeticFaceValue])
+            div_u_star = velocity.divergence
             
-            # Stress (Bio Only)
-            s_val = biology_model.get_stress(self.mesh.x, self.mesh.y, t) * (1.0 - self.chi.value)
-            s_var = CellVariable(mesh=self.mesh, value=s_val)
-            stress_x.value = s_var.grad[0]
-            stress_y.value = s_var.grad[1]
             
+            pressure_eq = DiffusionTerm(var=p) == (biology_model.rho/dt) * div_u_star
+            pressure_eq.solve(var=p, solver=solver)
+
+            # --- VELOCITY CORRECTION ---
+            u.value[:] -= (dt/biology_model.rho) * p.grad[0]
+            v.value[:] -= (dt/biology_model.rho) * p.grad[1]
+
             
-            velocity_vector[:] = numerix.array([self.u.faceValue, self.v.faceValue])
+            # soft 0 on boundary
+            u.value[:] *= (1.-self.chi)
+            v.value[:] *= (1.-self.chi)
+            
                 
-            # 2. MOMENTUM PREDICTOR (Solve for u*, v*)
-            # Implicit Drag on LHS ensures stability
-            # We include grad(p) from previous sweep/step
-                
-            eq_u = (TransientTerm(var=self.u) 
-                        + ImplicitSourceTerm(coeff=total_drag, var=self.u)
-                        == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=self.u)
-                        - HybridConvectionTerm(coeff=velocity_vector, var=self.u)
-                        + (1.0/biology_model.rho) * stress_x)
-                
-            eq_v = (TransientTerm(var=self.v) 
-                        + ImplicitSourceTerm(coeff=total_drag, var=self.v)
-                        == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=self.v)
-                        - HybridConvectionTerm(coeff=velocity_vector, var=self.v)
-                        + (1.0/biology_model.rho) * stress_y)
-                
-            eq_u.solve(dt=dt, solver=solver)
-            eq_v.solve(dt=dt, solver=solver)
-                
-            # 3. PRESSURE CORRECTOR
-            # Calculate Variable Mobility (Beta)
-            # Small at wall, Large in gap
-            beta = dt / (biology_model.rho)# + total_drag.value * dt)
-            beta_coeff = CellVariable(mesh=self.mesh, value=beta)
-                
-                # Calculate Divergence Error
-            velocity_vector[:] = numerix.array([self.u.faceValue, self.v.faceValue])
-            div_u = velocity_vector.divergence
-                
-            # Solve Poisson: div(beta * grad(P_prime)) = div(u*)
-            p_corr.value = 0.0
-            p_eq = (DiffusionTerm(coeff=beta_coeff, var=p_corr) == div_u)
-            p_eq.solve(var=p_corr, solver=solver)
-                
-            # 4. UPDATE FIELDS
-            # Correct Pressure
-            self.p.value[:] += p_corr.value
-            self.p.value[:] -= self.p.value.mean()
-                
-            # Correct Velocity
-            self.u.value[:] -= beta * p_corr.grad[0]
-            self.v.value[:] -= beta * p_corr.grad[1]
-                
-            # Safety Clamp: Explicitly kill wall velocity inside the loop
-            # This helps the pressure solver "learn" the boundary faster
-            self.u.value[:] *= (1.- self.chi)
-            self.v.value[:] *= (1.- self.chi)
             
             # --- SAVE ---
             if step % save_every == 0:
-                u_save.append(self.u.value.copy())
-                v_save.append(self.v.value.copy())
-                p_tmp = self.p.value.copy()
+                u_save.append(u.value.copy())
+                v_save.append(v.value.copy())
+                p_tmp = p.value.copy()
                 p_tmp[self.plotting_mask] = np.nan 
                 p_save.append(p_tmp)
                 drag_tmp = total_drag.value.copy()
                 drag_tmp[self.plotting_mask] = np.nan 
                 drag_save.append(drag_tmp)
-                stress_save.append(s_val.copy())
+                stress_save.append(stress_ext.value.copy())
                 t_save.append(t)
 
         self.saved = dict(u=u_save, v=v_save, p=p_save,
@@ -582,13 +556,13 @@ class QuasiStaticSolver:
 
         # 1. Momentum X
         # Viscosity + Drag + PressureGrad = Stress
-        eq_u = (DiffusionTerm(coeff=self.mu, var=self.u) 
+        eq_u = (DiffusionTerm(coeff=biology_model.mu, var=self.u) 
                 - ImplicitSourceTerm(coeff=drag_coeff, var=self.u) 
                 - self.p.grad[0] 
                 + stress_x == 0) # Steady State
 
         # 2. Momentum Y
-        eq_v = (DiffusionTerm(coeff=self.mu, var=self.v) 
+        eq_v = (DiffusionTerm(coeff=biology_model.mu, var=self.v) 
                 - ImplicitSourceTerm(coeff=drag_coeff, var=self.v) 
                 - self.p.grad[1] 
                 + stress_y == 0)
