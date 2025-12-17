@@ -1,47 +1,77 @@
 import numpy as np 
-from cytoFD.forward.planecells import gaussianbump2D, cellBoundary2D, celldivflow2D, growinggaussianbump2D
+from cytoFD.forward.planegeneral import growinggaussianbump2Dconc, ActinModel, CellDivFlow2D, CellDivFlow2DPISO
 import matplotlib.pyplot as plt
 from cytoFD.forward.plot_utils import velocity_animation
 import scipy.io
 
 
 setups = []
-for stress in [1e5, 5e4, 1e4]:
-    for cell_radius in [1./2, 0.5/2, 0.2/2]:
-        for mu in [5, 10, 20]:
+for stress in [1e4, 5e3, 1e3, 5e2, 1e2, 5]:
+    for cell_radius in [1./2]:
+        for visc_range in [[50, 1000], [50, 500], 
+                           [200, 1000], [200, 500]]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
-                          "mu": mu
+                          "visc_range": visc_range
                           })
 # in total 27
 
-def run(run_id, dx = 0.04, tmax = 10, dt = None):
+def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
+    # N determines number of girds
+    
+    
+    
+        
+        
     setup  = setups[run_id]
     cell_radius = setup["cell_radius"]
     stress_max = setup["stress"]
-    mu = setup["mu"]
+    visc_range = setup["visc_range"]
+    
+    if N is not None:
+        dx = cell_radius * 2 / N
+    if dx is None and N is None:
+        dx = cell_radius * 2 / 100
+        N = 100
+    if dt is None:
+        dt = 1./(mu/(dx ** 2))
     print(setup)
     print(f"dx {dx}, tmax {tmax}, dt {dt}")
-    stress = growinggaussianbump2D(theta = (90/90) *  np.pi/2, # rotate the gap?
+    
+    biology = ActinModel(actin = growinggaussianbump2Dconc(theta = (90/90) *  np.pi/2,
                                 precision = np.array([[25, 0],[0, 25**2]]) * ((cell_radius * 2) ** 2),
-                                timescale = tmax,
-                                maxp = stress_max) # maximum stress? mg/(mm s^2)
-    myflow = celldivflow2D(stress_field = stress,
-                                  mu = mu, # dynamic viscosity mg/(mm s)
-                                  rho = 1., # density mg/mm^3, so that the cell is of size 1mm-ish
+                                timescale = tmax/3.),
+                        stress_range = [1e-5, stress_max],
+                        drag_range = [0, 0],
+                        visc_range = visc_range,
+                        stress_power = 1.,
+                        drag_power = 1.,
+                        visc_power = 1., 
+                        rho=1.0
+                        )
+    
+    
+    myflow = CellDivFlow2D(
                                   domain_size = 2 * cell_radius, # 1mm 
                                   cell_radius = cell_radius,
                                   N=int(2 * cell_radius/dx))
-    # N determines number of girds
-    if dt is None:
-        dt = 1./(mu/(dx ** 2))
-    uu, v, p, stress_ext, t, x, y, N = myflow.solve(dt = dt, steps = int(tmax/dt), save_every = max(int(tmax/dt/100), 1))
+    
+    
+    
+    
+    res = myflow.solve(biology, dt = dt, 
+                                                    steps = int(tmax/dt), 
+                                                    save_every = max(int(tmax/dt/100), 1), 
+                                                    alpha_wall=1e9)
 
-    np.savez(f"./modelcell2Dmax{stress_max}_size{cell_radius}_visc{mu}_dt{dt}_dx{dx}_tmax{tmax}", u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
+    np.savez(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+             **res)
+             #u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
 
     #breakpoint()
-    fig, axs = myflow.plot_vel_p_end(thinning = 1, scale = None, idx = -1)
-    fig.savefig(f"hydrostatic_norot{stress_max}_size{cell_radius}_visc{mu}_dt{dt}_dx{dx}_tmax{tmax}.png")
+    print(res["u"][-1].max()*1000*60)
+    fig, axs = myflow.plot_vel_p_end(thinning = 2, scale = None, idx = -1)
+    fig.savefig(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
 
 import fire
 if __name__ == "__main__":

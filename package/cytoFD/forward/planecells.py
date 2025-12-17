@@ -501,8 +501,6 @@ class celldivflow2D():
         smooth_mask = 0.5 * (1 + numerix.tanh((rdist - self.cellradius) / epsilon))
         chi = CellVariable(mesh=self.mesh, value=smooth_mask)
         
-        # Brinkman Coefficient (High Friction)
-        alpha = 1e9 
 
         for step in tqdm(range(steps)):
             

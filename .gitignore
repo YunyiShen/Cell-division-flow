@@ -13,3 +13,4 @@ data/*
 *.mp4
 *.pdf
 package/cytoFD/__pycache__/*
+script/tests

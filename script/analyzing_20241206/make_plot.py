@@ -6,7 +6,8 @@ import matplotlib.gridspec as gridspec
 
 ########## time series plot ################
 simulation = np.load("./modelcell2Dmax20_norot.npz")
-u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
+#breakpoint()
+u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], 20-simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
@@ -41,8 +42,8 @@ for i in range(6):
                 levels=np.linspace(0, np.nanmax(stress_ext_save), 20), cmap='viridis')
     
     ax0.quiver(
-            X2[::step, ::step], Y2[::step, ::step],
-            U2[::step, ::step], V2[::step, ::step],
+            X2[::10, ::10], Y2[::10, ::10],
+            U2[::10, ::10], V2[::10, ::10],
             scale=10,
             width=0.005,
             color='black'
@@ -68,7 +69,7 @@ from celluloid import Camera
 
 # Load data
 simulation = np.load("./modelcell2Dmax20_norot.npz")
-u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
+u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], 20-simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
@@ -150,7 +151,7 @@ plt.close()
 
 ### load simulation ###
 simulation = np.load("./modelcell2Dmax20.npz")
-u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext'], simulation['t']
+u_ts, v_ts, p, stress_ext_ts, t_ts = simulation['u'], simulation['v'], simulation['p'], 20-simulation['p_ext'], simulation['t']
 X, Y, N = simulation['x'], simulation['y'], simulation['N']
 nx, ny = N, N
 
@@ -180,12 +181,12 @@ X_conc, Y_conc = np.meshgrid(X_range_conc, Y_range_conc)
 ##### plot ####
 fig = plt.figure(figsize=(10, 6))
 gs = gridspec.GridSpec(2, 4, width_ratios=[1, 1, 1, 0.03])
-
+#breakpoint()
 ax0 = fig.add_subplot(gs[0, 0])
-ax0.quiver(X_mesh[::step,0], 
-                 X_mesh[::step,1], 
-                 vel_data[::step,0], 
-                 vel_data[::step,1], 
+ax0.quiver(X_mesh[::8,0], 
+                 X_mesh[::8,1], 
+                 vel_data[::8,0], 
+                 vel_data[::8,1], 
                  scale = 0.2,
                  width = 0.005, 
                  color = "black")
@@ -226,10 +227,10 @@ cf = ax0.pcolormesh(X_conc[::5, ::5], Y_conc[::5, ::5], conc_plot[::5, ::5],
                 norm=norm, 
                 cmap='viridis')
 
-ax0.quiver(X_mesh[::6,0], 
-                 X_mesh[::6,1], 
-                 vel_data[::6,0], 
-                 vel_data[::6,1], 
+ax0.quiver(X_mesh[::8,0], 
+                 X_mesh[::8,1], 
+                 vel_data[::8,0], 
+                 vel_data[::8,1], 
                  scale = 0.2,
                  width = 0.005, 
                  color = "black")
@@ -300,5 +301,53 @@ cbar.set_label('Model stress due to actin')
 
 fig.tight_layout()
 fig.savefig("experiments.pdf")
+
+
+############ only concentration ############
+##### plot ####
+fig = plt.figure(figsize=(8.5, 3))
+gs = gridspec.GridSpec(1, 4, width_ratios=[1, 0.03, 1, 0.03])
+#breakpoint()
+ax0 = fig.add_subplot(gs[0, 0])
+
+### actin conc ###
+
+from matplotlib import colors
+norm = colors.PowerNorm(gamma=1.3, vmin=conc_plot.min(), vmax=conc_plot.max())
+cf = ax0.pcolormesh(X_conc[::5, ::5], Y_conc[::5, ::5], conc_plot[::5, ::5],
+                #levels= 20,#np.linspace(0, np.nanmax(conc_plot), 20), 
+                norm=norm, 
+                cmap='viridis')
+ax0.set_title("actin")
+ax0.set_aspect('equal')
+ax0.set_xticks([])
+ax0.set_yticks([])
+#ax0.arrow(1., 0.8, -0.4, -0.4, 
+#                head_width=0.2, 
+#                head_length=0.2, 
+#                ec='black', fc='saddlebrown')
+
+
+cax1 = fig.add_subplot(gs[0, 1])
+cbar = fig.colorbar(cf, cax=cax1)
+cbar.set_label('Actin concentration') 
+
+ax0 = fig.add_subplot(gs[0, 2])
+cf = ax0.contourf(X2, Y2, stress_ext, 
+            levels=np.linspace(0, np.nanmax(stress_ext_save),  20), 
+            cmap='viridis')
+#ax0.arrow(1.38, 1.38, -0.18, -0.18, 
+#                head_width=0.075, 
+#                head_length=0.075, 
+#                ec='black', fc='saddlebrown')
+ax0.set_xticks([])
+ax0.set_yticks([])
+
+cax1 = fig.add_subplot(gs[0, 3])
+cbar = fig.colorbar(cf, cax=cax1)
+cbar.set_label('Actin concentration') 
+
+fig.tight_layout()
+fig.savefig("experiments_conc_only.pdf")
 
 

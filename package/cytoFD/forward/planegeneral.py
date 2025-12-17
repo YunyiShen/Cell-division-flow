@@ -47,11 +47,13 @@ class ActinModel:
     """
     def __init__(self, 
                 actin = None,
-                stress_range = [1e-5, 1e4],
-                drag_range = [1e6, 1e10],
+                stress_range = [1e-5, 1e3],
+                visc_range = [20., 500],
+                drag_range = [0., 0.,],
                 stress_power = 1.,
+                visc_power = 1., 
                 drag_power = 2.,
-                mu = 20.0, rho=1.0
+                rho=1.0
                 ):           # Min Cytosol Drag (Solvent floor)
         
         if actin is None:
@@ -64,7 +66,8 @@ class ActinModel:
         self.stress_power = stress_power
         self.drag_power = drag_power
         # Geometry Placeholders (Set by Solver)
-        self.mu = mu
+        self.visc_power = visc_power
+        self.visc_range = visc_range
         self.rho = rho
         self.center = None
         self.domain_size = None
@@ -91,6 +94,11 @@ class ActinModel:
         """ Constitutive Law: Sigma ~ A^n """
         Apow = self.get_actin(x, y, t) ** self.stress_power
         return self.stress_range[1] * (Apow) + self.stress_range[0] * (1-Apow)
+    
+    def get_viscosity(self, x, y, t):
+        Apow = self.get_actin(x, y, t) ** self.visc_power
+        # Interpolate between Cytosol Viscosity (Gap) and Cortex Drag (Bulk)
+        return self.visc_range[0] + (self.visc_range[1] - self.visc_range[0]) * (Apow)
 
     def get_drag(self, x, y, t):
         """ Constitutive Law: Alpha ~ A^m """
@@ -154,6 +162,7 @@ class CellDivFlow2D:
         # Fields
         total_drag = CellVariable(mesh=self.mesh, value=0.0)
         stress_ext = CellVariable(mesh=self.mesh, value=0.0)
+        viscosity = CellVariable(mesh=self.mesh, value=0.0)
         
         solver = LinearLUSolver()
         u_save, v_save, p_save, stress_save, drag_save, t_save = [], [], [], [], [], []
@@ -172,19 +181,22 @@ class CellDivFlow2D:
             # alpha_wall = 1e4 is PLENTY. Do not use 1e9.
             bio_drag = biology_model.get_drag(self.mesh.x, self.mesh.y, t)
             total_drag.value = bio_drag * (1.0 - self.chi.value) + alpha_wall * self.chi.value
+            
+            raw_visc = biology_model.get_viscosity(self.mesh.x, self.mesh.y, t)
+            viscosity.value = raw_visc * (1.0 - self.chi.value)
             #breakpoint()
             # --- B. PREDICTOR STEP (Implicit Drag) ---
             # We use the 'face_velocity' from the PREVIOUS step to advect.
             # This is much more stable than interpolating u/v every time.
             
             u_star_eq = (TransientTerm(var=u) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=u)
-                         == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=u)
+                         == DiffusionTerm(coeff=viscosity/biology_model.rho, var=u)
                          - HybridConvectionTerm(coeff=velocity, var=u)
                          + (1.0/biology_model.rho) * stress_ext.grad[0] 
                          ) # Implicit Drag
             
             v_star_eq = (TransientTerm(var=v) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=v)
-                         == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=v)
+                         == DiffusionTerm(coeff=viscosity/biology_model.rho, var=v)
                          - HybridConvectionTerm(coeff=velocity, var=v)
                          + (1.0/biology_model.rho) * stress_ext.grad[1] 
                          ) # Implicit Drag
@@ -216,17 +228,19 @@ class CellDivFlow2D:
                 u_save.append(u.value.copy())
                 v_save.append(v.value.copy())
                 p_tmp = p.value.copy()
-                p_tmp[self.plotting_mask] = np.nan 
+                #p_tmp[self.plotting_mask] = np.nan 
                 p_save.append(p_tmp)
                 drag_tmp = total_drag.value.copy()
-                drag_tmp[self.plotting_mask] = np.nan 
+                #drag_tmp[self.plotting_mask] = np.nan 
                 drag_save.append(drag_tmp)
                 stress_save.append(stress_ext.value.copy())
                 t_save.append(t)
 
         self.saved = dict(u=u_save, v=v_save, p=p_save,
                           stress_ext=stress_save, drag=drag_save,
-                          t=t_save, x=x, y=y, steps=steps)
+                          chi = self.chi.value.copy(), 
+                          t=t_save, x=x, y=y, steps=steps,
+                          N = self.N)
         
         return self.saved
     
@@ -386,14 +400,14 @@ class CellDivFlow2DPISO:
                 
                 eq_u = (TransientTerm(var=self.u) 
                         + ImplicitSourceTerm(coeff=total_drag, var=self.u)
-                        == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=self.u)
+                        == DiffusionTerm(coeff=viscosity/biology_model.rho, var=self.u)
                         - HybridConvectionTerm(coeff=velocity_vector, var=self.u)
                         + (1.0/biology_model.rho) * stress_x
                         - (1.0/biology_model.rho) * self.p.grad[0])
                 
                 eq_v = (TransientTerm(var=self.v) 
                         + ImplicitSourceTerm(coeff=total_drag, var=self.v)
-                        == DiffusionTerm(coeff=biology_model.mu/biology_model.rho, var=self.v)
+                        == DiffusionTerm(coeff=viscosity/biology_model.rho, var=self.v)
                         - HybridConvectionTerm(coeff=velocity_vector, var=self.v)
                         + (1.0/biology_model.rho) * stress_y
                         - (1.0/biology_model.rho) * self.p.grad[1])
@@ -556,13 +570,13 @@ class QuasiStaticSolver:
 
         # 1. Momentum X
         # Viscosity + Drag + PressureGrad = Stress
-        eq_u = (DiffusionTerm(coeff=biology_model.mu, var=self.u) 
+        eq_u = (DiffusionTerm(coeff=viscosity, var=self.u) 
                 - ImplicitSourceTerm(coeff=drag_coeff, var=self.u) 
                 - self.p.grad[0] 
                 + stress_x == 0) # Steady State
 
         # 2. Momentum Y
-        eq_v = (DiffusionTerm(coeff=biology_model.mu, var=self.v) 
+        eq_v = (DiffusionTerm(coeff=viscosity, var=self.v) 
                 - ImplicitSourceTerm(coeff=drag_coeff, var=self.v) 
                 - self.p.grad[1] 
                 + stress_y == 0)
