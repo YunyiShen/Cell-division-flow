@@ -1,5 +1,5 @@
 import fipy as fp
-from fipy import CellVariable, FaceVariable, Grid2D, TransientTerm, DiffusionTerm, HybridConvectionTerm, ImplicitSourceTerm, LinearLUSolver
+from fipy import CellVariable, FaceVariable, Grid3D, TransientTerm, DiffusionTerm, HybridConvectionTerm, ImplicitSourceTerm, LinearLUSolver
 import fipy.tools.numerix as numerix
 import numpy as np
 import matplotlib.pyplot as plt
@@ -11,9 +11,7 @@ import copy
 
 class growinggaussianbump3Dconc():
     def __init__(self, precision = np.array([[25, 0, 0],[0, 25, 0],[0, 0, 25**2]]), 
-                 timescale = 1., theta = 0):
-        precision = rotate_precision_matrix(precision, theta)
-        #breakpoint()
+                 timescale = 1.):
         self.precision = precision
         
         self.timescale = timescale
@@ -120,7 +118,7 @@ class CellDivFlow3D:
         self.cellradius = cell_radius
         
         # Mesh
-        self.mesh = Grid3D(dx=self.dx, dy=self.dx, dz = self.dx, nx=N, ny=N)
+        self.mesh = Grid3D(dx=self.dx, dy=self.dx, dz = self.dx, nx=N, ny=N, nz = N)
         self.saved = None
 
         # --- Geometry Masks ---
@@ -141,7 +139,7 @@ class CellDivFlow3D:
         
 
     def solve(self, biology_model, dt, steps, alpha_wall=1e4, save_every = 10):
-        x, y = self.mesh.cellCenters
+        x, y, z = self.mesh.cellCenters
         # Sync Geometry
         biology_model.set_geometry(self.L, self.cellcenter)
         # 1. Setup
@@ -224,7 +222,7 @@ class CellDivFlow3D:
             u.value[:] *= (1.-self.chi)
             v.value[:] *= (1.-self.chi)
             w.value[:] *= (1.-self.chi)
-            
+            #breakpoint()
                 
             
             # --- SAVE ---

@@ -17,7 +17,7 @@ def rotate_precision_matrix(Lambda, theta):
     return R.T @ Lambda @ R
 
 class growinggaussianbump2Dconc():
-    def __init__(self, precision = np.array([[25, 0],[0, 25**2]]), 
+    def __init__(self, precision = np.array([[25, 0],[0, 30**2]]), 
                  timescale = 1., theta = 0):
         precision = rotate_precision_matrix(precision, theta)
         #breakpoint()

@@ -8,9 +8,10 @@ from scipy.ndimage import zoom
 
 stress_max = 1000.0
 cell_radius = 0.5
-visc_range = [20, 1000]
-dt = 0.005
-dx = 0.025
+visc_range = [500, 5000]
+dt = 0.004
+dx = 0.0196078431372549
+N = 51
 tmax = 600
 chi_thr = 0.2
 
@@ -21,7 +22,7 @@ chi = simulation['chi']
 u[:,chi > 0.5*chi_thr] = np.nan
 v[:, chi > 0.5*chi_thr] = np.nan
 
-X, Y, N = simulation['x'], simulation['y'], int(1/dx)
+X, Y, N = simulation['x'], simulation['y'], N
 #stress_ext_save[:, chi > 0.2] = np.nan
 
 #u[chi > 0.8] = np.nan
@@ -31,6 +32,7 @@ n_plot_time_series = 5
 u_ts = u[::(n_frame//n_plot_time_series)]
 v_ts = v[::(n_frame//n_plot_time_series)]
 stress_ext_ts = stress_ext_save[::(n_frame//n_plot_time_series)]
+#breakpoint()
 t_ts = t[::(n_frame//n_plot_time_series)]
 
 U = u_ts[-1]
@@ -39,7 +41,7 @@ X2 = X.reshape((nx, ny))
 Y2 = Y.reshape((nx, ny))
 U2 = U.reshape((nx, ny))
 V2 = V.reshape((nx, ny))
-stress_ext = stress_ext_ts[-1].reshape((nx, ny))
+stress_ext = stress_ext_ts[-2].reshape((nx, ny))
 
 #### three panel plot ###
 
@@ -135,7 +137,7 @@ cbar.set_label('Contractile stress by actomyosin (Pa)')
 #ax0.set_yticks([])
 
 fig.tight_layout()
-fig.savefig(f"./Fig_6/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.pdf")
+fig.savefig(f"./Fig_6/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
 
 
 #breakpoint()
@@ -158,7 +160,7 @@ ax.xaxis.set_ticks_position('bottom')
 ax.yaxis.set_ticks_position('left')
 
 
-for stress_max, color in zip([1000.0, 500.0], ["black", "red"]):
+for stress_max, color in zip([1000.0, 500.0, 100.0], ["black", "red", "green"]):
     simulation = np.load(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz")
     #breakpoint()
     u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext']/1000, simulation['t']
@@ -189,7 +191,7 @@ for stress_max, color in zip([1000.0, 500.0], ["black", "red"]):
     if N%2 == 0:
         u_slice = (U2[N//2, :] + U2[(N//2+1), :])/2 * (1000 * 60)
     else:
-        u_slice = U2[(N//2+1), :]
+        u_slice = U2[(N//2+1), :] * (1000 * 60)
     x_slice = X2[0,:]
     
     ax.plot(x_slice-.5, u_slice, label = f"{stress_max/1000} Pa", color = color, linewidth = 2)
@@ -202,4 +204,4 @@ ax.yaxis.set_label_coords(0.4, 0.9)
 #ax.set_ylim([-2, 2])
 fig.tight_layout()
 fig.show()
-fig.savefig(f"./Fig_6/vel_middle_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.pdf")
+fig.savefig(f"./Fig_6/vel_middle_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")

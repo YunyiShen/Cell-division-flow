@@ -6,10 +6,23 @@ import scipy.io
 
 
 setups = []
-for stress in [1e4, 5e3, 1e3, 5e2, 1e2, 5]:
+for stress in [ 1e3, 1e4, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
-        for visc_range in [[50, 1000], [50, 500], 
-                           [200, 1000], [200, 500]]:
+        for visc_range in [
+                           #[200, 500],
+                           #[200, 1000], 
+                           #[200, 3000],
+                           #[500, 3000],  
+                           [5000, 50000],
+                           [10000, 50000],
+                           
+                           [1000, 10000],
+                           [2000, 10000],
+
+                           [500, 5000],
+                           [1000, 5000],
+                           
+                           ]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": visc_range
@@ -39,8 +52,8 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
     print(f"dx {dx}, tmax {tmax}, dt {dt}")
     
     biology = ActinModel(actin = growinggaussianbump2Dconc(theta = (90/90) *  np.pi/2,
-                                precision = np.array([[25, 0],[0, 25**2]]) * ((cell_radius * 2) ** 2),
-                                timescale = tmax/3.),
+                                precision = np.array([[25, 0],[0, 30**2]]) * ((cell_radius * 2) ** 2),
+                                timescale = tmax/2.),
                         stress_range = [1e-5, stress_max],
                         drag_range = [0, 0],
                         visc_range = visc_range,
