@@ -4,17 +4,12 @@ import matplotlib.pyplot as plt
 import scipy.io
 
 setups = []
-for stress in [1e3]:
+for stress in [ 2e3, 1e3, 5e3]:
     for cell_radius in [1./2]:
         for visc_range in [
-                           #[200, 500],
-                           #[200, 1000], 
-                           #[200, 3000],
-                           #[500, 3000],  
-                           #[200, 5000],
-                           #[500, 5000],
-                           [1000, 5000]
-                           #[2000, 5000]
+                            [2000, 10000],
+                            [3000, 10000],
+                            [5000, 10000]
                            ]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
