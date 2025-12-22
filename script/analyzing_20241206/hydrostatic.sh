@@ -6,7 +6,7 @@
 #SBATCH --job-name=myflow
 #SBATCH --output=logs/job_%A_%a.out
 #SBATCH --error=logs/job_%A_%a.err
-#SBATCH --array=0-29            # 30 jobs
+#SBATCH --array=0-5            # 30 jobs
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1       # adjust as needed
 #SBATCH --time=12:00:00         # adjust walltime

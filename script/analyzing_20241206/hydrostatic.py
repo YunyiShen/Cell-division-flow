@@ -6,7 +6,7 @@ import scipy.io
 
 
 setups = []
-for stress in [ 1e3, 1e4, 5e3, 5e2, 1e2]:
+for stress in [2e3]: #[ 1e3, 1e4, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
         for visc_range in [
                            #[200, 500],

@@ -8,10 +8,10 @@ from scipy.ndimage import zoom
 
 stress_max = 1000.0
 cell_radius = 0.5
-visc_range = [500, 5000]
+visc_range = [2000, 10000]
 dt = 0.004
-dx = 0.0196078431372549
-N = 51
+dx = 0.012345679012345678
+N = 81
 tmax = 600
 chi_thr = 0.2
 
@@ -105,10 +105,10 @@ cf = ax0.contourf(Xf, Yf, stress_masked,
 #breakpoint()
 
 ax0.quiver(
-            X2[::2, ::2], Y2[::2, ::2],
-            U2[::2, ::2], V2[::2, ::2],
+            X2[::4, ::4], Y2[::4, ::4],
+            U2[::4, ::4], V2[::4, ::4],
             #scale=10,
-            width=0.008,
+            width=0.01,
             color='black'
         )
 ax0.set_xticks([])
@@ -160,7 +160,7 @@ ax.xaxis.set_ticks_position('bottom')
 ax.yaxis.set_ticks_position('left')
 
 
-for stress_max, color in zip([1000.0, 500.0, 100.0], ["black", "red", "green"]):
+for stress_max, color in zip([1000.0, 100.0], ["black", "green"]): #zip([1000.0, 500.0, 100.0], ["black", "red", "green"]):
     simulation = np.load(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz")
     #breakpoint()
     u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext']/1000, simulation['t']
@@ -191,7 +191,7 @@ for stress_max, color in zip([1000.0, 500.0, 100.0], ["black", "red", "green"]):
     if N%2 == 0:
         u_slice = (U2[N//2, :] + U2[(N//2+1), :])/2 * (1000 * 60)
     else:
-        u_slice = U2[(N//2+1), :] * (1000 * 60)
+        u_slice = (U2[(N//2+1), :])/1 * (1000 * 60)
     x_slice = X2[0,:]
     
     ax.plot(x_slice-.5, u_slice, label = f"{stress_max/1000} Pa", color = color, linewidth = 2)
