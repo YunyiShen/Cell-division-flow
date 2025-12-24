@@ -242,7 +242,7 @@ class CellDivFlow3D:
         self.saved = dict(u=u_save, v=v_save, w = w_save,p=p_save,
                           stress_ext=stress_save, drag=drag_save,
                           chi = self.chi.value.copy(), 
-                          t=t_save, x=x, y=y, steps=steps,
+                          t=t_save, x=x, y=y, z=z,steps=steps,
                           N = self.N)
         
         return self.saved

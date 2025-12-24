@@ -69,7 +69,7 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
              **res)
              #u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
 
-    breakpoint()
+    #breakpoint()
     print(res["u"][-1].max()*1000*60)
     
     

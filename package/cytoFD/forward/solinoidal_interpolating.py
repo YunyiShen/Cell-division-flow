@@ -161,7 +161,7 @@ def masked_hodge_project_flat_fipy(
         vP = m0 * vP
         wP = m0 * wP
 
-    return np.asarray(uP.value), np.asarray(vP.value), np.asarray(wP.value), np.asarray(chi.value), np.asarray(rhs.value)
+    return np.asarray(uP.value), np.asarray(vP.value), np.asarray(wP.value), np.asarray(chi.value)
 
 
 # ---------- 4) End-to-end convenience wrapper ----------
@@ -180,6 +180,7 @@ def solinoidal_interpolating(
     Inputs: x,y,z,u,v,w,chi all flattened from FiPy cell variables (same length).
     Returns: mesh_fine and flattened (uP,vP,wP,chi_f,rhs_f) on mesh_fine.
     """
+    print("solinoidal interpolating...")
     mesh_c, axes_xyz, perm_u2c, _ = grid3d_from_cell_centers_xyz(x, y, z)
 
     nx, ny, nz = mesh_c.shape
@@ -199,13 +200,14 @@ def solinoidal_interpolating(
         {"u": u, "v": v, "w": w, "chi": chi},
         method=interp_method,
     )
-
-    uP, vP, wP, chi_f, rhs_f = masked_hodge_project_flat_fipy(
+    print("Hodge projecting...")
+    uP, vP, wP, chi_f= masked_hodge_project_flat_fipy(
         mesh_f, fine["u"], fine["v"], fine["w"], fine["chi"],
         bc=bc, eps_mask=eps_mask, zero_outside=zero_outside
     )
+    print("Done")
     return mesh_f.cellCenters[0], mesh_f.cellCenters[1],mesh_f.cellCenters[2], \
-           uP, vP, wP, chi_f, rhs_f
+           uP, vP, wP, chi_f
 
 
 def simple_interpolate(
@@ -221,6 +223,7 @@ def simple_interpolate(
     Returns:
       mesh_f, x_f, y_f, z_f, stress_f   (all flattened arrays for fine cell centers)
     """
+    print("simple interpolation...")
     stress_flat = np.asarray(stress_flat, dtype=float).ravel()
     x = np.asarray(x, dtype=float).ravel()
     y = np.asarray(y, dtype=float).ravel()
@@ -256,5 +259,5 @@ def simple_interpolate(
     x_f = np.asarray(ccf[0]).copy()
     y_f = np.asarray(ccf[1]).copy()
     z_f = np.asarray(ccf[2]).copy()
-
+    print("Done.")
     return  x_f, y_f, z_f, stress_f
