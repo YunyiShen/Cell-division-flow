@@ -18,4 +18,4 @@ echo "Running job $SLURM_ARRAY_TASK_ID of $SLURM_ARRAY_TASK_COUNT"
 
 module load miniforge/24.3.0-0
 conda activate cytofd
-python hydrostatic3D.py --run_id $SLURM_ARRAY_TASK_ID --tmax 60 --dt 0.025 --N 31
+python hydrostatic3D.py --run_id $SLURM_ARRAY_TASK_ID --tmax 60 --dt 0.05 --N 31 --Stokes True

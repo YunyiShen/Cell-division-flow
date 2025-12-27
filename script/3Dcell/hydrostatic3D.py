@@ -17,7 +17,7 @@ for stress in [ 2e3, 1e3, 5e3]:
                           })
 # in total 27
 
-def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
+def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     # N determines number of girds
     
     
@@ -38,6 +38,8 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
         dt = 1./(mu/(dx ** 2))
     print(setup)
     print(f"dx {dx}, tmax {tmax}, dt {dt}")
+    if Stokes:
+        print("running Stokes instead of Navier Stokes")
     
     biology = ActinModel(actin = growinggaussianbump3Dconc(
                                 precision = np.array([[25, 0, 0],[0, 25, 0],[0, 0, 30**2]]) * ((cell_radius * 2) ** 2),
@@ -55,7 +57,9 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
     myflow = CellDivFlow3D(
                                   domain_size = 2 * cell_radius, # 1mm 
                                   cell_radius = cell_radius,
-                                  N=int(2 * cell_radius/dx))
+                                  N=int(2 * cell_radius/dx),
+                                  
+                                  Stokes = Stokes)
     
     
     
@@ -65,7 +69,13 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
                                                     save_every = max(int(tmax/dt/100), 1), 
                                                     alpha_wall=1e9)
 
-    np.savez(f"./simulations/modelcell3D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+    if Stokes:
+        np.savez(f"./simulations/modelcell3D_Stokes_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+             **res)
+        
+    else:
+    
+        np.savez(f"./simulations/modelcell3D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
              **res)
              #u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
 

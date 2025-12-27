@@ -110,12 +110,13 @@ from tqdm import tqdm
 
 class CellDivFlow3D:
 
-    def __init__(self, domain_size=1.0, N=100, cell_radius=0.5):
+    def __init__(self, domain_size=1.0, N=100, cell_radius=0.5, Stokes = False):
         self.L = domain_size
         self.N = N
         self.dx = domain_size / N
         self.cellcenter = [self.L/2.0, self.L/2.0, self.L/2.0]
         self.cellradius = cell_radius
+        self.Stokes = Stokes
         
         # Mesh
         self.mesh = Grid3D(dx=self.dx, dy=self.dx, dz = self.dx, nx=N, ny=N, nz = N)
@@ -181,19 +182,41 @@ class CellDivFlow3D:
             # We use the 'face_velocity' from the PREVIOUS step to advect.
             # This is much more stable than interpolating u/v every time.
             
-            u_star_eq = (TransientTerm(var=u) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=u)
+            if self.Stokes:
+                u_star_eq = (ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=u)
+                         == DiffusionTerm(coeff=viscosity/biology_model.rho, var=u)
+                         
+                         + (1.0/biology_model.rho) * stress_ext.grad[0] 
+                         ) # Implicit Drag
+            
+                v_star_eq = (ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=v)
+                         == DiffusionTerm(coeff=viscosity/biology_model.rho, var=v)
+                         
+                         + (1.0/biology_model.rho) * stress_ext.grad[1] 
+                         ) # Implicit Drag
+            
+                w_star_eq = (ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=w)
+                         == DiffusionTerm(coeff=viscosity/biology_model.rho, var=w)
+                         
+                         + (1.0/biology_model.rho) * stress_ext.grad[2] 
+                         ) # Implicit Drag
+            
+            else:
+            
+            
+                u_star_eq = (TransientTerm(var=u) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=u)
                          == DiffusionTerm(coeff=viscosity/biology_model.rho, var=u)
                          - HybridConvectionTerm(coeff=velocity, var=u)
                          + (1.0/biology_model.rho) * stress_ext.grad[0] 
                          ) # Implicit Drag
             
-            v_star_eq = (TransientTerm(var=v) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=v)
+                v_star_eq = (TransientTerm(var=v) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=v)
                          == DiffusionTerm(coeff=viscosity/biology_model.rho, var=v)
                          - HybridConvectionTerm(coeff=velocity, var=v)
                          + (1.0/biology_model.rho) * stress_ext.grad[1] 
                          ) # Implicit Drag
             
-            w_star_eq = (TransientTerm(var=w) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=w)
+                w_star_eq = (TransientTerm(var=w) + ImplicitSourceTerm(coeff=total_drag/ biology_model.rho, var=w)
                          == DiffusionTerm(coeff=viscosity/biology_model.rho, var=w)
                          - HybridConvectionTerm(coeff=velocity, var=w)
                          + (1.0/biology_model.rho) * stress_ext.grad[2] 

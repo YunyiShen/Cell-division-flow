@@ -7,7 +7,8 @@ from scipy.ndimage import zoom
 import os
 from tqdm import tqdm
 
-for visc_range in tqdm([
+visc_range = [3000, 3000]
+for drag_range in tqdm([
                            #[200, 500],
                            #[200, 1000], 
                            #[200, 3000],
@@ -34,7 +35,7 @@ for visc_range in tqdm([
     tmax = 600
     chi_thr = 0.2
 
-    res_file = f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz"
+    res_file = f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz"
     if not os.path.exists(res_file):
         print(f"{res_file} does not exist")
         continue
@@ -140,7 +141,7 @@ for visc_range in tqdm([
     #ax0.set_yticks([])
 
     fig.tight_layout()
-    fig.savefig(f"./Fig_6/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
+    fig.savefig(f"./Fig_6/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
 
 
     #breakpoint()
@@ -164,7 +165,7 @@ for visc_range in tqdm([
 
 
     for stress_max, color in zip([2000.0, 1000.0, 500.0, 100.0], ["orange", "black", "red", "green"]):
-        sim_file = f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz"
+        sim_file = f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}.npz"
         if not os.path.exists(sim_file):
             print(f"{sim_file} does not exist")
             continue
@@ -211,4 +212,4 @@ for visc_range in tqdm([
     #ax.set_ylim([-2, 2])
     fig.tight_layout()
     fig.show()
-    fig.savefig(f"./Fig_6/vel_middle_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
+    fig.savefig(f"./Fig_6/vel_middle_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")

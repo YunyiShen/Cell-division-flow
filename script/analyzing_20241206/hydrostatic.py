@@ -6,8 +6,37 @@ import scipy.io
 
 
 setups = []
+
+# grid w/o drag
+
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
+        for drag_range in [[0,0]]:
+            for visc_range in [
+                            
+                           #[5000, 50000],
+                           #[10000, 50000],
+                           
+                           #[1000, 10000],
+                            [2000, 2000],
+                            [3000, 3000],
+                            [5000, 5000],
+                            [2000, 10000],
+                            [3000, 10000],
+                            [5000, 10000]
+                           #[500, 5000],
+                           #[1000, 5000],
+                           
+                           ]:
+                setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range
+                          })
+#### 30 setups for viscosity ####
+
+for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
+    for cell_radius in [(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
         for visc_range in [
                             
                            #[5000, 50000],
@@ -26,11 +55,38 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                            ]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
-                          "visc_range": visc_range
+                          "visc_range": visc_range,
+                          "drag_range": [0,0]
                           })
-# in total 27
+##### 18 setups for size ####
 
-def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
+for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
+    for cell_radius in [1./2]:
+        for visc_range in [[1000, 1000], [500, 500]]:
+            for drag_range in [
+                            
+                           #[5000, 50000],
+                           #[10000, 50000],
+                           
+                           #[1000, 10000],
+                            [20000, 20000],
+                            [30000, 30000],
+                            [50000, 50000],
+                            [20000, 100000],
+                            [30000, 100000],
+                            [50000, 100000]
+                           #[500, 5000],
+                           #[1000, 5000],
+                           
+                           ]:
+                setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range
+                          })
+##### 60 setups for drag #####
+
+def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     # N determines number of girds
     
     
@@ -41,6 +97,7 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
     cell_radius = setup["cell_radius"]
     stress_max = setup["stress"]
     visc_range = setup["visc_range"]
+    drag_range = setup['drag_range']
     
     if N is not None:
         dx = cell_radius * 2 / N
@@ -51,12 +108,14 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
         dt = 1./(mu/(dx ** 2))
     print(setup)
     print(f"dx {dx}, tmax {tmax}, dt {dt}")
+    if Stokes:
+        print("running Stokes equation instead of Navier-Stokes")
     
     biology = ActinModel(actin = growinggaussianbump2Dconc(theta = (90/90) *  np.pi/2,
                                 precision = np.array([[25, 0],[0, 30**2]]) * ((cell_radius * 2) ** 2),
                                 timescale = tmax/2.),
                         stress_range = [1e-5, stress_max],
-                        drag_range = [0, 0],
+                        drag_range = drag_range,#[0, 0],
                         visc_range = visc_range,
                         stress_power = 1.,
                         drag_power = 1.,
@@ -68,7 +127,9 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
     myflow = CellDivFlow2D(
                                   domain_size = 2 * cell_radius, # 1mm 
                                   cell_radius = cell_radius,
-                                  N=int(2 * cell_radius/dx))
+                                  N=int(2 * cell_radius/dx),
+                            Stokes = Stokes      
+                            )
     
     
     
@@ -78,14 +139,21 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51):
                                                     save_every = max(int(tmax/dt/100), 1), 
                                                     alpha_wall=1e9)
 
-    np.savez(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+    if Stokes:
+        np.savez(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+             **res)
+    else:
+        np.savez(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
              **res)
              #u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
 
     #breakpoint()
     print(res["u"][-1].max()*1000*60)
     fig, axs = myflow.plot_vel_p_end(thinning = 2, scale = None, idx = -1)
-    fig.savefig(f"./simulations/modelcell2D_maxstress{stress_max}_drag{0}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
+    if Stokes:
+        fig.savefig(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
+    else:
+        fig.savefig(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
 
 import fire
 if __name__ == "__main__":
