@@ -7,8 +7,28 @@ import scipy.io
 
 setups = []
 
-# grid w/o drag
+'''
+exploding settings
+for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
+    for cell_radius in [1./2]:
+        for drag_range in [[0,0], [3.e4, 1.e6], [3.e5, 1.e7]]:
+            for visc_range in [
+                            
+                           [5, 20]
+                           [50, 200]
+                           
+                           ]:
+                setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range
+                          })
+# in total 40
 
+'''
+
+# grid w/o drag
+'''
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
         for drag_range in [[0,0]]:
@@ -34,9 +54,9 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           "drag_range": drag_range
                           })
 #### 30 setups for viscosity ####
-
+'''
 for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
-    for cell_radius in [(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
+    for cell_radius in np.linspace(0.05/2, 1./2, num = 10): #[(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
         for visc_range in [
                             
                            #[5000, 50000],
@@ -60,6 +80,34 @@ for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           })
 ##### 18 setups for size ####
 
+##### size and drag ####
+for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
+    for cell_radius in np.linspace(0.05/2, 1./2, num = 10): #[(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
+        for drag_range in [
+                            
+                           #[5000, 50000],
+                           #[10000, 50000],
+                           
+                           #[1000, 10000],
+                            [20000, 20000],
+                            [30000, 30000],
+                            [50000, 50000],
+                            [20000, 100000],
+                            [30000, 100000],
+                            [50000, 100000]
+                           #[500, 5000],
+                           #[1000, 5000],
+                           
+                           ]:
+            setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": [500, 500],
+                          "drag_range": drag_range
+                          })
+
+
+
+'''
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
         for visc_range in [[1000, 1000], [500, 500]]:
@@ -85,7 +133,7 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           "drag_range": drag_range
                           })
 ##### 60 setups for drag #####
-
+'''
 def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     # N determines number of girds
     
@@ -112,7 +160,7 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
         print("running Stokes equation instead of Navier-Stokes")
     
     biology = ActinModel(actin = growinggaussianbump2Dconc(theta = (90/90) *  np.pi/2,
-                                precision = np.array([[25, 0],[0, 30**2]]) * ((cell_radius * 2) ** 2),
+                                precision = np.array([[25, 0],[0, 30**2]]) / ((cell_radius * 2) ** 2),
                                 timescale = tmax/2.),
                         stress_range = [1e-5, stress_max],
                         drag_range = drag_range,#[0, 0],

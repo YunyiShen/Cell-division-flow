@@ -210,10 +210,10 @@ def visualize_streamlines(u, v, w, stress, x, y, z, filename="3Dstreamlines.pdf"
     plotter.camera.azimuth = 10
     plotter.camera.elevation = -5
     plotter.show_grid(xlabel='X', ylabel='Y', zlabel='Z', n_xlabels=3,
-n_ylabels=3,
-n_zlabels=3,
-font_size=50,
-)
+        n_ylabels=3,
+        n_zlabels=3,
+        font_size=50,
+    )
     #plotter.show_grid(False)
     #plotter.show(screenshot=filename)
     plotter.show(auto_close=False)  # Keep plot open for saving
@@ -228,7 +228,7 @@ font_size=50,
 
 visc = [3000, 10000]
 refine = 2
-simures = np.load(f"./simulations/modelcell3D_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60_interpolated{refine}.npz")
+simures = np.load(f"./simulations/modelcell3D_Stokes_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60_interpolated{refine}.npz")
 #breakpoint()
 '''
 xu = np.unique(simures['x'])
@@ -286,5 +286,5 @@ visualize_streamlines(u * 1000 * 60,
                       stress/1000, x, 
                                 y, 
                                 z,
-                                filename = f"./Fig_6/modelcell3D_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60_interpolated{refine}.pdf"
+                                filename = f"./Fig_6/modelcell3D_Stokes_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60_interpolated{refine}.pdf"
                                 )
