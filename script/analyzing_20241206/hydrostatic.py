@@ -7,15 +7,18 @@ import scipy.io
 
 setups = []
 
-'''
-exploding settings
+
+#exploding and literature settings
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
         for drag_range in [[0,0], [3.e4, 1.e6], [3.e5, 1.e7]]:
             for visc_range in [
                             
-                           [5, 20]
-                           [50, 200]
+                           [5, 20],
+                           [50, 200],
+                           [4000, 20000],
+                           [8000, 40000] # this is a literature value
+                           
                            
                            ]:
                 setups.append({"stress": stress, 
@@ -23,9 +26,9 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           "visc_range": visc_range,
                           "drag_range": drag_range
                           })
-# in total 40
+# in total 45
 
-'''
+
 
 # grid w/o drag
 '''
@@ -54,6 +57,7 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           "drag_range": drag_range
                           })
 #### 30 setups for viscosity ####
+'''
 '''
 for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in np.linspace(0.05/2, 1./2, num = 10): #[(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
@@ -105,7 +109,7 @@ for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
                           "drag_range": drag_range
                           })
 
-
+'''
 
 '''
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
