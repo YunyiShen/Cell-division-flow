@@ -7,7 +7,7 @@ import scipy.io
 
 setups = []
 
-
+'''
 #exploding and literature settings
 for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in [1./2]:
@@ -24,9 +24,14 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                 setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": visc_range,
-                          "drag_range": drag_range
+                          "drag_range": drag_range,
+                          "aspect_ratio": 1.0
                           })
 # in total 45
+'''
+
+
+
 
 
 
@@ -54,7 +59,8 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
                 setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": visc_range,
-                          "drag_range": drag_range
+                          "drag_range": drag_range,
+                          "aspect_ratio": 1.0
                           })
 #### 30 setups for viscosity ####
 '''
@@ -80,7 +86,8 @@ for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": visc_range,
-                          "drag_range": [0,0]
+                          "drag_range": [0,0],
+                          "aspect_ratio": 1.0
                           })
 ##### 18 setups for size ####
 
@@ -89,24 +96,19 @@ for stress in [1e3]: #[ 1e3, 2e3, 5e3, 5e2, 1e2]:
     for cell_radius in np.linspace(0.05/2, 1./2, num = 10): #[(1./2)/2, (1./(2**2))/2, (1./(2**3))/2]: #[1./2]:
         for drag_range in [
                             
-                           #[5000, 50000],
-                           #[10000, 50000],
-                           
-                           #[1000, 10000],
                             [20000, 20000],
                             [30000, 30000],
                             [50000, 50000],
                             [20000, 100000],
                             [30000, 100000],
                             [50000, 100000]
-                           #[500, 5000],
-                           #[1000, 5000],
                            
                            ]:
             setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": [500, 500],
-                          "drag_range": drag_range
+                          "drag_range": drag_range,
+                          "aspect_ratio": 1.0
                           })
 
 '''
@@ -117,27 +119,57 @@ for stress in [ 1e3, 2e3, 5e3, 5e2, 1e2]:
         for visc_range in [[1000, 1000], [500, 500]]:
             for drag_range in [
                             
-                           #[5000, 50000],
-                           #[10000, 50000],
-                           
-                           #[1000, 10000],
                             [20000, 20000],
                             [30000, 30000],
                             [50000, 50000],
                             [20000, 100000],
                             [30000, 100000],
                             [50000, 100000]
-                           #[500, 5000],
-                           #[1000, 5000],
                            
                            ]:
                 setups.append({"stress": stress, 
                           "cell_radius": cell_radius,
                           "visc_range": visc_range,
-                          "drag_range": drag_range
+                          "drag_range": drag_range,
+                          "aspect_ratio": 1.0
                           })
 ##### 60 setups for drag #####
 '''
+
+# geometry
+for stress in [ 1e3, 2e3, 5e3]:
+    for cell_radius in [1./2]:
+        for drag_range in [[0,0]]:
+            for visc_range in [
+                           [5, 20], 
+                           [3000, 10000]
+                           ]:
+                for aspect_ratio in [0.25, 0.5, 2, 4]:
+                    setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range,
+                          "aspect_ratio": aspect_ratio
+                          })
+
+
+for stress in [ 1e3, 2e3, 5e3]:
+    for cell_radius in [1./2]:
+        for drag_range in [[3.e4, 1.e6], [3.e5, 1.e7]]:
+            for visc_range in [
+                           [5, 20],
+                           [500, 500], 
+                           ]:
+                for aspect_ratio in [0.25, 0.5, 2, 4]:
+                    setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range,
+                          "aspect_ratio": aspect_ratio
+                          })
+
+#### 96 settings ####
+
 def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     # N determines number of girds
     
@@ -150,6 +182,7 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     stress_max = setup["stress"]
     visc_range = setup["visc_range"]
     drag_range = setup['drag_range']
+    aspect_ratio = setup['aspect_ratio']
     
     if N is not None:
         dx = cell_radius * 2 / N
@@ -173,8 +206,9 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
                         drag_power = 1.,
                         visc_power = 1., 
                         rho=1.0,
-                        domain_size = 2 * cell_radius, # 1mm 
-                        cell_radius = cell_radius
+                        domain_size = 2 * cell_radius * (aspect_ratio if aspect_ratio > 1. else 1.), # 1mm 
+                        cell_radius = cell_radius,
+                        aspect_ratio = aspect_ratio
                         )
     
     
@@ -193,10 +227,10 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
                                                     alpha_wall=1e9)
 
     if Stokes:
-        np.savez(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+        np.savez(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_aspectratio{aspect_ratio}_dt{dt}_dx{dx}_tmax{tmax}", 
              **res)
     else:
-        np.savez(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_tmax{tmax}", 
+        np.savez(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_aspectratio{aspect_ratio}_dt{dt}_dx{dx}_tmax{tmax}", 
              **res)
              #u = uu, v = v, p = p, stress_ext = stress_ext, t = t, x = x, y = y, N = N)
 
@@ -204,9 +238,9 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
     print(res["u"][-1].max()*1000*60)
     fig, axs = myflow.plot_vel_p_end(thinning = 2, scale = None, idx = -1)
     if Stokes:
-        fig.savefig(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
+        fig.savefig(f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_aspectratio{aspect_ratio}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
     else:
-        fig.savefig(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
+        fig.savefig(f"./simulations/modelcell2D_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_aspectratio{aspect_ratio}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.png")
 
 import fire
 if __name__ == "__main__":
