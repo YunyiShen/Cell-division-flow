@@ -47,6 +47,9 @@ class ActinModel:
     """
     def __init__(self, 
                 actin = None,
+                domain_size = 1,
+                aspect_ratio = 1.,
+                cell_radius = 0.5,
                 stress_range = [1e-5, 1e3],
                 visc_range = [20., 500],
                 drag_range = [0., 0.,],
@@ -58,7 +61,7 @@ class ActinModel:
         
         if actin is None:
             def actin(x, y, t): return 1.0
-        
+        self.domain_size = domain_size
         self.actin = actin
         #self.boundary = boundary
         self.stress_range = stress_range
@@ -69,13 +72,10 @@ class ActinModel:
         self.visc_power = visc_power
         self.visc_range = visc_range
         self.rho = rho
-        self.center = None
-        self.domain_size = None
-
-    def set_geometry(self, domain_size, center):
-        """Called by the solver to sync the biological pattern to the mesh size"""
-        self.center = center
-        self.domain_size = domain_size
+        self.center = [domain_size/2., domain_size/2.]
+        self.aspect_ratio = aspect_ratio
+        self.cellradius = cell_radius
+               
 
     def get_actin(self, x, y, t):
         """
@@ -105,6 +105,19 @@ class ActinModel:
         Apow = self.get_actin(x, y, t) ** self.drag_power
         # Interpolate between Cytosol Viscosity (Gap) and Cortex Drag (Bulk)
         return self.drag_range[0] + (self.drag_range[1] - self.drag_range[0]) * (Apow)
+    
+    def get_chi(self, x, y, dx):
+        '''
+        soft boundary used by solver
+        '''
+        rdist = np.sqrt((x -self.center[0])**2 + ((y - self.center[1])/self.aspect_ratio)**2)
+        
+        # Smooth Transition Mask (Chi)
+        epsilon = 1.5 * dx
+        return 0.5 * (1 + np.tanh((rdist - self.cellradius) / epsilon))
+        
+        
+        
 
 
 # =============================================================================
@@ -119,39 +132,36 @@ from tqdm import tqdm
 
 class CellDivFlow2D:
 
-    def __init__(self, domain_size=1.0, N=100, cell_radius=0.5, Stokes = False):
-        self.L = domain_size
+    def __init__(self, N=100, Stokes = False):
+        self.L = None
         self.N = N
-        self.dx = domain_size / N
-        self.cellcenter = [self.L/2.0, self.L/2.0]
-        self.cellradius = cell_radius
+        self.dx = None
         self.Stokes = Stokes
         
         # Mesh
-        self.mesh = Grid2D(dx=self.dx, dy=self.dx, nx=N, ny=N)
+        self.mesh = None
         self.saved = None
 
         # --- Geometry Masks ---
-        x, y = self.mesh.cellCenters
-        x0, y0 = self.cellcenter
-        rdist = numerix.sqrt((x - x0)**2 + (y - y0)**2)
+        self.chi = None
         
-        # Smooth Transition Mask (Chi)
-        epsilon = 1.5 * self.dx
-        smooth_mask = 0.5 * (1 + numerix.tanh((rdist - self.cellradius) / epsilon))
-        self.chi = CellVariable(mesh=self.mesh, value=smooth_mask)
         
-        # Binary Mask (For hard constraints/plotting)
-        self.wall_mask = (rdist >= self.cellradius)
-        self.plotting_mask = self.wall_mask
         
-        # Variables
         
 
     def solve(self, biology_model, dt, steps, alpha_wall=1e4, save_every = 10):
+        
+        
+        
+        ##### make grids ####
+        self.L = biology_model.domain_size
+        self.dx = self.L/self.N
+        self.mesh = Grid2D(dx=self.dx, dy=self.dx, nx=self.N, ny=self.N)
         x, y = self.mesh.cellCenters
-        # Sync Geometry
-        biology_model.set_geometry(self.L, self.cellcenter)
+        self.chi = CellVariable(mesh=self.mesh, value=0.)
+        self.chi.value = biology_model.get_chi(x, y, self.dx)
+        #breakpoint()
+        
         # 1. Setup
         u = CellVariable(mesh=self.mesh, name="u", value=0.)
         v = CellVariable(mesh=self.mesh, name="v", value=0.)

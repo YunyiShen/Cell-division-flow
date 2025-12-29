@@ -172,13 +172,14 @@ def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False):
                         stress_power = 1.,
                         drag_power = 1.,
                         visc_power = 1., 
-                        rho=1.0
+                        rho=1.0,
+                        domain_size = 2 * cell_radius, # 1mm 
+                        cell_radius = cell_radius
                         )
     
     
     myflow = CellDivFlow2D(
-                                  domain_size = 2 * cell_radius, # 1mm 
-                                  cell_radius = cell_radius,
+                                  
                                   N=int(2 * cell_radius/dx),
                             Stokes = Stokes      
                             )

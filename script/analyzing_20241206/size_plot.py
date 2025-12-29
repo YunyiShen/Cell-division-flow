@@ -14,8 +14,8 @@ cmap = LinearSegmentedColormap.from_list(
     ["cyan", "magenta"]  # start → end color
 )
 
-drag_range = [0, 0]
-visc_range = [3000, 10000]
+drag_range = [50000, 100000] #[0, 0]
+visc_range = [500, 500] #[3000, 10000]
 fig_u, ax_u = plt.subplots(figsize=(8,5))
 fig_v, ax_v = plt.subplots(figsize=(8,5))
 # Move left y-axis and bottom x-axis to center
@@ -45,10 +45,10 @@ colors = ["#f3a2c6", "#a1b0c5", "#00afb2", "#003854"]
 
 
 for color, size_range in tqdm(zip(colors, [
-                           [0.5, 0.01098901098901099], # radaius, dx
+                           [0.5,  0.01098901098901099], # radaius, dx
                            [0.25, 0.005494505494505495],
-                           [0.125, 0.0027472527472527475],
-                           [0.0625, 0.0013736263736263737]
+                           [0.125,0.0027472527472527475]#,
+                           #[0.0625, 0.0013736263736263737]
                            ])):
 
     stress_max = 1000.0
@@ -229,7 +229,7 @@ ax_u.yaxis.set_label_coords(0.4, 0.9)
 #ax.set_ylim([-2, 2])
 fig_u.tight_layout()
 fig_u.show()
-fig_u.savefig(f"./Fig_6/vel_middle_Stokes_maxstress{1000}_drag{drag_range[0]}-{drag_range[1]}_size_changing_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
+fig_u.savefig(f"./size_fig/vel_middle_Stokes_maxstress{1000}_drag{drag_range[0]}-{drag_range[1]}_size_changing_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
     
 #### v plot
 ax_v.legend()
@@ -241,9 +241,66 @@ ax_v.yaxis.set_label_coords(0.4, 0.9)
 #ax.set_ylim([-2, 2])
 fig_v.tight_layout()
 fig_v.show()
-fig_v.savefig(f"./Fig_6/vel_yaxis_middle_Stokes_maxstress{1000}_drag{drag_range[0]}-{drag_range[1]}_size_changing_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
+fig_v.savefig(f"./size_fig/vel_yaxis_middle_Stokes_maxstress{1000}_drag{drag_range[0]}-{drag_range[1]}_size_changing_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
   
     
+'''
+max velocity as a function of cell size
+'''
+
+
+    
+fig, ax = plt.subplots(figsize=(8,5))
+velnorm = []
+uslice = []
+vslice = []
+
+for cell_radius in tqdm(np.linspace(0.05/2, 1./2, num = 10)):
+    res_file = f"./simulations/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{2*cell_radius/N}_tmax{tmax}.npz"
+    if not os.path.exists(res_file):
+        print(f"{res_file} does not exist")
+        continue
+    
+    simulation = np.load(res_file)
+    u, v, p, stress_ext_save, t = simulation['u'], simulation['v'], simulation['p'], simulation['stress_ext']/1000, simulation['t']
+    chi = simulation['chi']
+    u[:,chi > 0.5*chi_thr] = np.nan
+    v[:, chi > 0.5*chi_thr] = np.nan
+    
+    U = u[-1]
+    V = v[-1]
+    X2 = X.reshape((nx, ny))
+    Y2 = Y.reshape((nx, ny))
+    U2 = U.reshape((nx, ny))
+    V2 = V.reshape((nx, ny))
+    
+    if N%2 == 0:
+        u_slice = (U2[N//2, :] + U2[(N//2+1), :])/2 * (1000 * 60)
+        v_slice = (V2[:, N//2] + V2[:, (N//2+1)])/2 * (1000 * 60)
+    else:
+        u_slice = (U2[(N//2+1), :])/1 * (1000 * 60)
+        v_slice = (V2[:, (N//2+1)])/1 * (1000 * 60)
     
     
+    uslice.append(np.nanmax(u_slice))
+    vslice.append(np.nanmax(v_slice))
     
+    velnorm.append(np.nanmax(np.linalg.norm(np.stack((u[-1], v[-1]), axis = 0), axis = 0)) * 1000 * 60)
+#breakpoint()  
+ax.scatter(np.linspace(0.05/2, 1./2, num = 10), velnorm)
+ax.plot(np.linspace(0.05/2, 1./2, num = 10), velnorm, label = "global")
+
+ax.scatter(np.linspace(0.05/2, 1./2, num = 10), uslice)
+ax.plot(np.linspace(0.05/2, 1./2, num = 10), uslice, label = "x slice")
+
+ax.scatter(np.linspace(0.05/2, 1./2, num = 10), vslice)
+ax.plot(np.linspace(0.05/2, 1./2, num = 10), vslice, label = "y slice")
+
+ax.legend()
+ax.set_xlabel('cell radius (mm)')
+ax.set_ylabel('maximum velocity (µm/min)')
+
+
+fig.tight_layout()
+fig.show()
+fig.savefig(f"./size_fig/max_vel_Stokes_maxstress{1000}_drag{drag_range[0]}-{drag_range[1]}_size_changing_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
