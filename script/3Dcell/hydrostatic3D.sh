@@ -6,7 +6,7 @@
 #SBATCH --job-name=myflow
 #SBATCH --output=logs/job_%A_%a.out
 #SBATCH --error=logs/job_%A_%a.err
-#SBATCH --array=0-8            # 30 jobs
+#SBATCH --array=0-0            # 30 jobs
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1       # adjust as needed
 #SBATCH --time=12:00:00         # adjust walltime
@@ -19,3 +19,4 @@ echo "Running job $SLURM_ARRAY_TASK_ID of $SLURM_ARRAY_TASK_COUNT"
 module load miniforge/24.3.0-0
 conda activate cytofd
 python hydrostatic3D.py --run_id $SLURM_ARRAY_TASK_ID --tmax 60 --dt 0.05 --N 31 --Stokes True
+sbatch interpolating.sh

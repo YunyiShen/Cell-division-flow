@@ -8,7 +8,8 @@ from mpl_toolkits.mplot3d import axes3d
 from cytoFD.forward.solinoidal_interpolating import solinoidal_interpolating, simple_interpolate
 
 
-visc = [3000, 10000]
+visc = [4000, 20000]
+refine = 2
 simures = np.load(f"./simulations/modelcell3D_Stokes_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60.npz")
 #breakpoint()
 
@@ -27,7 +28,7 @@ w = simures['w'][-1]
 stress = simures['stress_ext'][-1]
 chi = simures['chi']
 
-refine = 2
+
 
 xf, yf, zf, stressf = simple_interpolate(stress, x, y, z, refine=refine)
 #breakpoint()

@@ -226,7 +226,7 @@ def visualize_streamlines(u, v, w, stress, x, y, z, filename="3Dstreamlines.pdf"
         im = Image.open(filename.replace(".pdf", ".png"))
         im.save(filename)
 
-visc = [3000, 10000]
+visc = [4000, 20000]
 refine = 2
 simures = np.load(f"./simulations/modelcell3D_Stokes_maxstress1000.0_drag0_size0.5_visc{visc[0]}-{visc[1]}_dt0.05_dx0.03225806451612903_tmax60_interpolated{refine}.npz")
 #breakpoint()
