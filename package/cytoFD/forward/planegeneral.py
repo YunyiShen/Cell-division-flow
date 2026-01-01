@@ -8,6 +8,18 @@ from tqdm import tqdm
 import copy
 
 
+def sigmoid(x):
+    """
+    Implements the logistic sigmoid function using NumPy.
+    
+    Args:
+        x: Input value, can be a scalar or a NumPy array.
+
+    Returns:
+        The sigmoid of the input, a value or array between 0 and 1.
+    """
+    return 1 / (1 + np.exp(-x))
+
 # some useful actin models 
 def rotate_precision_matrix(Lambda, theta):
     R = np.array([
@@ -31,6 +43,28 @@ class growinggaussianbump2Dconc():
         quadform = np.einsum("i...,ij,j...->...", xy, self.precision, xy)
         conc = (1.-(1.-np.exp(-t/(self.timescale))) * np.exp(-0.5 * quadform)) 
         return conc
+
+class cortex2Dconc():
+    def __init__(self, R = 0.5, width = 0.02, aspect_ratio = 1., timescale = 1., phase_rot = 0.):
+        self.width = 0.001
+        self.timescale = 1.
+        self.aspect_ratio = aspect_ratio
+        self.R = R
+        self.phase_rot = phase_rot
+    def __call__(self, x, y, t):
+        rr = np.sqrt(x ** 2 + (y/self.aspect_ratio) ** 2)
+        thetaa = np.arctan2(y/self.aspect_ratio, x)
+        maxconc = (1.-np.exp(-t/(self.timescale)))
+        
+        geometry = sigmoid((rr-self.R)/self.width + 4.) * np.cos(2*thetaa + self.phase_rot)
+        
+        #geometry = np.exp(-(np.clip(rr-self.R, 
+        #                            a_min = None, 
+        #                            a_max = 0))**2/(2 * self.width**2)) * np.cos(2*thetaa + self.phase_rot)
+        return maxconc * geometry
+    
+
+
 
 
 # =============================================================================
