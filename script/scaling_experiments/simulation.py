@@ -11,9 +11,12 @@ setups = []
 for stress in [ 1e3, 5e2, 1e2]:
     for cell_radius in np.linspace(0.1/2, 1./2, num = 20): 
         for visc_range in [
-                           [4000, 20000],
-                           [4000, 4000],
-                           [20000, 20000]
+                           #[4000, 20000],
+                           #[4000, 4000],
+                           #[20000, 20000]
+                           [3000, 10000],
+                           [3000, 3000],
+                           [10000, 10000]
                            
                            ]:
             setups.append({"stress": stress, 
@@ -23,6 +26,24 @@ for stress in [ 1e3, 5e2, 1e2]:
                           "aspect_ratio": 1.0
                           })
 ##### 180 setups for size ####
+
+'''
+for stress in [ 1e3]:
+    for cell_radius in [1./2]:
+        for drag_range in [[3.e4, 1.e6], [3.e5, 1.e7]]:
+            for visc_range in [
+                           [5, 20],
+                           [500, 500], 
+                           ]:
+                for aspect_ratio in [0.25, 0.5, 2, 4]:
+                    setups.append({"stress": stress, 
+                          "cell_radius": cell_radius,
+                          "visc_range": visc_range,
+                          "drag_range": drag_range,
+                          "aspect_ratio": aspect_ratio
+                          })
+
+#### 16 settings ####
 
 ##### size and drag ####
 for stress in [ 1e3, 5e2, 1e2]:
@@ -41,16 +62,19 @@ for stress in [ 1e3, 5e2, 1e2]:
                           })
 
 # 100 setups
-
+'''
 
 # geometry
 for stress in [ 1e3]:
     for cell_radius in [1./2]:
         for drag_range in [[0,0]]:
             for visc_range in [
-                           [4000, 20000],
-                           [4000, 4000],
-                           [20000, 20000]
+                           #[4000, 20000],
+                           #[4000, 4000],
+                           #[20000, 20000]
+                           [3000, 10000],
+                           [3000, 3000],
+                           [10000, 10000]
                            ]:
                 for aspect_ratio in [0.25, 0.5, 2, 4]:
                     setups.append({"stress": stress, 
@@ -61,22 +85,7 @@ for stress in [ 1e3]:
                           })
 # 9 settings
 
-for stress in [ 1e3]:
-    for cell_radius in [1./2]:
-        for drag_range in [[3.e4, 1.e6], [3.e5, 1.e7]]:
-            for visc_range in [
-                           [5, 20],
-                           [500, 500], 
-                           ]:
-                for aspect_ratio in [0.25, 0.5, 2, 4]:
-                    setups.append({"stress": stress, 
-                          "cell_radius": cell_radius,
-                          "visc_range": visc_range,
-                          "drag_range": drag_range,
-                          "aspect_ratio": aspect_ratio
-                          })
 
-#### 16 settings ####
 
 def run(run_id, dx = None, tmax = 10, dt = None, N = 51, Stokes = False, which_biology = "bulk"):
     # N determines number of girds

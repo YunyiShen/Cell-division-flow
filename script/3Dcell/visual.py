@@ -150,10 +150,10 @@ def visualize_streamlines(u, v, w, stress, x, y, z, filename="3Dstreamlines.pdf"
         vectors="vectors",
         integrator_type = 45,
         integration_direction='forward',
-        max_time=100.0,
+        max_time=1000.0,
         initial_step_length=0.05,
-        max_steps=100,
-        terminal_speed=1e-6,
+        max_steps=1000,
+        terminal_speed=1e-8,
         interpolator_type = "point",
         #opacity=0.5
     )
@@ -209,11 +209,19 @@ def visualize_streamlines(u, v, w, stress, x, y, z, filename="3Dstreamlines.pdf"
     #plotter.camera.parallel_projection = True
     plotter.camera.azimuth = 10
     plotter.camera.elevation = -5
+    '''
     plotter.show_grid(xlabel='X', ylabel='Y', zlabel='Z', n_xlabels=3,
         n_ylabels=3,
         n_zlabels=3,
         font_size=50,
     )
+    '''
+    plotter.show_grid(xlabel='X', ylabel='Y', zlabel='Z', n_xlabels=3,
+        n_ylabels=3,
+        n_zlabels=3,
+        font_size=0,
+    )
+    
     #plotter.show_grid(False)
     #plotter.show(screenshot=filename)
     plotter.show(auto_close=False)  # Keep plot open for saving

@@ -16,7 +16,7 @@ cmap = LinearSegmentedColormap.from_list(
 )
 
 
-visc_range = [5, 20]
+visc_range = [4000, 20000]
 for drag_range in tqdm([
                            #[200, 500],
                            #[200, 1000], 
@@ -39,7 +39,7 @@ for drag_range in tqdm([
                             #[30000, 100000],
                             #[50000, 100000]
                             
-                            [0,0], [3.e4, 1.e6], [3.e5, 1.e7]
+                            [0,0]
                             
                             #[5, 20],
                             #[50, 200],
@@ -92,11 +92,15 @@ for drag_range in tqdm([
     V2 = V.reshape((nx, ny))
     stress_ext = stress_ext_ts[-2].reshape((nx, ny))
     vel_size = np.linalg.norm(np.stack((U2, V2), axis = 0), axis = 0)
+    
+    u_size = np.abs(U2)
+    v_size = np.abs(V2)
+    
     #breakpoint()
     #### three panel plot ###
 
-    fig = plt.figure(figsize=(3*3.5, 3.0))
-    gs = gridspec.GridSpec(1, 5, width_ratios=[1, 1, 0.03, 1, 0.03])
+    fig = plt.figure(figsize=(3*3.5, 9.0))
+    gs = gridspec.GridSpec(3, 5, width_ratios=[1, 1, 0.03, 1, 0.03])
 
 
 
@@ -107,10 +111,24 @@ for drag_range in tqdm([
 
     Xf = zoom(X2, 6, order=1)
     Yf = zoom(Y2, 6, order=1)
+    
+    u_sizef = zoom(u_size, 6, order = 1)
+    v_sizef = zoom(v_size, 6, order = 1)
+    
+    u_f = zoom(U2, 6, order = 1)
+    v_f = zoom(V2, 6, order = 1)
 
     mask = (chifine > 0.1) 
+    
     stress_masked = np.ma.array(stressfine, mask=mask)
     vel_masked = np.ma.array(vel_sizef, mask = mask)
+    u_sizef_masked = np.ma.array(u_sizef, mask = mask)
+    v_sizef_masked = np.ma.array(v_sizef, mask = mask)
+    u_f_masked = np.ma.array(u_f, mask = mask)
+    v_f_masked = np.ma.array(v_f, mask = mask)
+    
+    
+    
 
     ax0 = fig.add_subplot(gs[0, 0])
     cf = ax0.contourf(Xf, Yf, stress_masked, 
@@ -166,7 +184,7 @@ for drag_range in tqdm([
     cbar.set_label('Contractile stress by actomyosin (Pa)') 
 
     
-        ## vel 
+    ## vel 
     ax0 = fig.add_subplot(gs[0, 3])
     cf = ax0.contourf(Xf, Yf, vel_masked * 1000 * 60, 
                   corner_mask=True, antialiased=True,
@@ -193,13 +211,121 @@ for drag_range in tqdm([
     cbar.set_label('Velocity (µm/min)') 
     
     
+    ########################
+    ###### x and y #########
+    ########################
+    ## vel 
+    ax0 = fig.add_subplot(gs[1, 1])
+    cf = ax0.contourf(Xf, Yf, u_sizef_masked * 1000 * 60, 
+                  corner_mask=True, antialiased=True,
+                  vmin=0,
+                  vmax=np.nanmax(vel_masked * 1000 * 60),
+            levels=np.linspace(0, np.nanmax(vel_masked * 1000 * 60),  21), 
+            #linewidths=0,
+            cmap=cmap)
     
+    ax0.set_xticks([])
+    ax0.set_yticks([])
+    ax0.set_axis_off()
+
+    ax0.set_aspect('equal')
+    ax0.set_title("x velocity, size")
     
+    cax1 = fig.add_subplot(gs[1, 2])
+    #cbar = fig.colorbar(cf, cax=cax1, extend="both")
+    norm = matplotlib.colors.Normalize(vmin=0,
+                  vmax=np.nanmax(vel_masked * 1000 * 60))
+    sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])  # required by colorbar
+    cbar = fig.colorbar(sm, cax=cax1, ticks=np.linspace(0, np.nanmax(vel_masked * 1000 * 60), 6))
+    cbar.set_label('Velocity (µm/min)') 
     
+    ax0 = fig.add_subplot(gs[1, 3])
+    cf = ax0.contourf(Xf, Yf, v_sizef_masked * 1000 * 60, 
+                  corner_mask=True, antialiased=True,
+                  vmin=0,
+                  vmax=np.nanmax(vel_masked * 1000 * 60),
+            levels=np.linspace(0, np.nanmax(vel_masked * 1000 * 60),  21), 
+            #linewidths=0,
+            cmap=cmap)
     
+    ax0.set_xticks([])
+    ax0.set_yticks([])
+    ax0.set_axis_off()
+
+    ax0.set_aspect('equal')
+    ax0.set_title("y velocity, size")
+    
+    cax1 = fig.add_subplot(gs[1, 4])
+    #cbar = fig.colorbar(cf, cax=cax1, extend="both")
+    norm = matplotlib.colors.Normalize(vmin=0,
+                  vmax=np.nanmax(vel_masked * 1000 * 60))
+    sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])  # required by colorbar
+    cbar = fig.colorbar(sm, cax=cax1, ticks=np.linspace(0, np.nanmax(vel_masked * 1000 * 60), 6))
+    cbar.set_label('Velocity (µm/min)')
     
     #ax0.set_xticks([])
     #ax0.set_yticks([])
+    
+    ########### with sign ##########
+    
+    
+    ax0 = fig.add_subplot(gs[2, 1])
+    cf = ax0.contourf(Xf, Yf, u_f_masked * 1000 * 60, 
+                  corner_mask=True, antialiased=True,
+                  vmin=-np.nanmax(vel_masked * 1000 * 60),
+                  vmax=np.nanmax(vel_masked * 1000 * 60),
+            levels=np.linspace(-np.nanmax(vel_masked * 1000 * 60), 
+                               np.nanmax(vel_masked * 1000 * 60),  21), 
+            #linewidths=0,
+            cmap=cmap)
+    
+    ax0.set_xticks([])
+    ax0.set_yticks([])
+    ax0.set_axis_off()
+
+    ax0.set_aspect('equal')
+    ax0.set_title("x velocity")
+    
+    cax1 = fig.add_subplot(gs[2, 2])
+    #cbar = fig.colorbar(cf, cax=cax1, extend="both")
+    norm = matplotlib.colors.Normalize(vmin=-np.nanmax(vel_masked * 1000 * 60),
+                  vmax=np.nanmax(vel_masked * 1000 * 60))
+    sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])  # required by colorbar
+    cbar = fig.colorbar(sm, cax=cax1, ticks=np.linspace(-np.nanmax(vel_masked * 1000 * 60), 
+                                                        np.nanmax(vel_masked * 1000 * 60), 6))
+    cbar.set_label('Velocity (µm/min)') 
+    
+    ax0 = fig.add_subplot(gs[2, 3])
+    cf = ax0.contourf(Xf, Yf, v_f_masked * 1000 * 60, 
+                  corner_mask=True, antialiased=True,
+                  vmin=-np.nanmax(vel_masked * 1000 * 60),
+                  vmax=np.nanmax(vel_masked * 1000 * 60),
+            levels=np.linspace(-np.nanmax(vel_masked * 1000 * 60), 
+                               np.nanmax(vel_masked * 1000 * 60),  21), 
+            #linewidths=0,
+            cmap=cmap)
+    
+    ax0.set_xticks([])
+    ax0.set_yticks([])
+    ax0.set_axis_off()
+
+    ax0.set_aspect('equal')
+    ax0.set_title("y velocity")
+    
+    cax1 = fig.add_subplot(gs[2, 4])
+    #cbar = fig.colorbar(cf, cax=cax1, extend="both")
+    norm = matplotlib.colors.Normalize(vmin=-np.nanmax(vel_masked * 1000 * 60),
+                  vmax=np.nanmax(vel_masked * 1000 * 60))
+    sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+    sm.set_array([])  # required by colorbar
+    cbar = fig.colorbar(sm, cax=cax1, ticks=np.linspace(-np.nanmax(vel_masked * 1000 * 60), np.nanmax(vel_masked * 1000 * 60), 6))
+    cbar.set_label('Velocity (µm/min)')
+    
+    
+    
 
     fig.tight_layout()
     fig.savefig(f"./Fig_6/modelcell2D_Stokes_maxstress{stress_max}_drag{drag_range[0]}-{drag_range[1]}_size{cell_radius}_visc{visc_range[0]}-{visc_range[1]}_dt{dt}_dx{dx}_N{N}_tmax{tmax}.pdf")
